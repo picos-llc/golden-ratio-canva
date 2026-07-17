@@ -22,9 +22,11 @@ const compositionInfo = document.getElementById('compositionInfo');
 const btnCrop = document.getElementById('btnCrop');
 const btnReset = document.getElementById('btnReset');
 const spiralControls = document.getElementById('spiralControls');
-const inputContrast = document.getElementById('inputContrast');
-const contrastVal = document.getElementById('contrastVal');
-const btnResetContrast = document.getElementById('btnResetContrast');
+const inputSaturation = document.getElementById('inputSaturation');
+const satVal = document.getElementById('satVal');
+const inputBrightness = document.getElementById('inputBrightness');
+const brightVal = document.getElementById('brightVal');
+const btnResetAdjustments = document.getElementById('btnResetAdjustments');
 
 // State Variables
 let img = new Image();
@@ -37,7 +39,8 @@ let currentRatio = 'free'; // 'free' or float value
 let activeGuide = 'thirds'; // 'thirds', 'golden_spiral', ...
 let spiralDirection = 0; // 0: TL, 1: TR, 2: BR, 3: BL
 let isPreviewMode = false;
-let contrastValue = 100;
+let saturationValue = 100;
+let brightnessValue = 100;
 
 // Interaction variables
 let isDragging = false;
@@ -228,9 +231,9 @@ function draw() {
   
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // Apply contrast filter to image draw only
+  // Apply saturation and brightness filters to image draw only
   ctx.save();
-  ctx.filter = `contrast(${contrastValue}%)`;
+  ctx.filter = `saturate(${saturationValue}%) brightness(${brightnessValue}%)`;
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   ctx.restore();
   
@@ -503,6 +506,83 @@ function drawHandles(cb) {
   }
 }
 
+// Touch Event helpers
+function getTouchPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  if (e.touches && e.touches.length > 0) {
+    return {
+      x: e.touches[0].clientX - rect.left,
+      y: e.touches[0].clientY - rect.top
+    };
+  }
+  return { x: 0, y: 0 };
+}
+
+canvas.addEventListener('touchstart', (e) => {
+  if (isPreviewMode) return;
+  const pos = getTouchPos(e);
+  const mx = pos.x;
+  const my = pos.y;
+  
+  const cb = toCanvasCoords(cropBox);
+  activeHandle = getClickedHandle(mx, my, cb);
+  
+  if (activeHandle) {
+    isResizing = true;
+    dragStart.x = mx;
+    dragStart.y = my;
+  } 
+  else if (mx > cb.x && mx < cb.x + cb.w && my > cb.y && my < cb.y + cb.h) {
+    isDragging = true;
+    dragStart.x = mx;
+    dragStart.y = my;
+  }
+  
+  if (isDragging || isResizing) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (isPreviewMode) return;
+  if (!isDragging && !isResizing) return;
+  
+  const pos = getTouchPos(e);
+  const mx = pos.x;
+  const my = pos.y;
+  
+  if (isDragging) {
+    const dx = (mx - dragStart.x) / canvas.width;
+    const dy = (my - dragStart.y) / canvas.height;
+    
+    cropBox.x += dx;
+    cropBox.y += dy;
+    boundCropBox();
+    
+    dragStart.x = mx;
+    dragStart.y = my;
+    draw();
+  } 
+  else if (isResizing) {
+    const dx = (mx - dragStart.x) / canvas.width;
+    const dy = (my - dragStart.y) / canvas.height;
+    
+    resizeCropBox(dx, dy);
+    
+    dragStart.x = mx;
+    dragStart.y = my;
+    draw();
+  }
+  
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+  isDragging = false;
+  isResizing = false;
+  activeHandle = null;
+});
+
 // Canvas Interactive Events
 canvas.addEventListener('mousedown', (e) => {
   if (isPreviewMode) return;
@@ -661,16 +741,25 @@ togglePreview.addEventListener('change', () => {
   draw();
 });
 
-inputContrast.addEventListener('input', (e) => {
-  contrastValue = parseInt(e.target.value);
-  contrastVal.innerText = `${contrastValue}%`;
+inputSaturation.addEventListener('input', (e) => {
+  saturationValue = parseInt(e.target.value);
+  satVal.innerText = `${saturationValue}%`;
   draw();
 });
 
-btnResetContrast.addEventListener('click', () => {
-  contrastValue = 100;
-  inputContrast.value = 100;
-  contrastVal.innerText = '100%';
+inputBrightness.addEventListener('input', (e) => {
+  brightnessValue = parseInt(e.target.value);
+  brightVal.innerText = `${brightnessValue}%`;
+  draw();
+});
+
+btnResetAdjustments.addEventListener('click', () => {
+  saturationValue = 100;
+  brightnessValue = 100;
+  inputSaturation.value = 100;
+  inputBrightness.value = 100;
+  satVal.innerText = '100%';
+  brightVal.innerText = '100%';
   draw();
 });
 
@@ -787,8 +876,8 @@ btnCrop.addEventListener('click', () => {
   exportCanvas.width = realW;
   exportCanvas.height = realH;
   
-  // Apply contrast filter to exported image crop
-  exCtx.filter = `contrast(${contrastValue}%)`;
+  // Apply saturation and brightness filters to exported image crop
+  exCtx.filter = `saturate(${saturationValue}%) brightness(${brightnessValue}%)`;
   exCtx.drawImage(img, realX, realY, realW, realH, 0, 0, realW, realH);
   exCtx.filter = 'none';
   

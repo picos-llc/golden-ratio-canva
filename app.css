@@ -69,6 +69,24 @@ input:checked + .switch-slider:before {
   font-weight: 600;
 }
 
+.btn-orientation {
+  flex: 1;
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.btn-orientation:hover:not(.active) {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
 .btn-orientation.active {
   background: rgba(139, 92, 246, 0.15);
   color: #fff;
