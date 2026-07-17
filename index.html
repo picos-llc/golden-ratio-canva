@@ -1,711 +1,130 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>絵画構図アシスタント・クロッパー (Artistic Composition Cropper)</title>
+  
   <!-- Google Fonts: Inter & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
   
-  <style>
-    :root {
-      --bg-dark: #090a0f;
-      --bg-card: rgba(17, 19, 31, 0.75);
-      --bg-sidebar: #0f111e;
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --accent: #8b5cf6;
-      --accent-hover: #a78bfa;
-      --success: #10b981;
+  <!-- Tailwind CSS v4 via Play CDN -->
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <style type="tailwind">
+    @theme {
+      --color-brand: #8b5cf6;
+      --color-brand-hover: #a78bfa;
+      --color-success: #10b981;
       
       --color-thirds: #06b6d4;
       --color-golden: #f59e0b;
       --color-symmetry: #ec4899;
       --color-triangle: #84cc16;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      font-family: 'Inter', sans-serif;
-      overflow-x: hidden;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    h1, h2, h3, h4 {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 700;
-    }
-
-    header {
-      background: linear-gradient(135deg, #130f22 0%, #07060c 100%);
-      padding: 1rem 2rem;
-      border-bottom: 1px solid rgba(139, 92, 246, 0.15);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      backdrop-filter: blur(12px);
-    }
-
-    header h1 {
-      font-size: 1.35rem;
-      background: linear-gradient(to right, #a78bfa, #8b5cf6, #ec4899);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.5px;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-    }
-
-    header h1 span.logo-icon {
-      font-size: 1.6rem;
-    }
-
-    header p {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    /* Main Container split */
-    .main-container {
-      display: flex;
-      flex: 1;
-      height: calc(100vh - 61px);
-      min-height: 500px;
-    }
-
-    /* Left Workspace */
-    .workspace {
-      flex: 1;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at center, #161829 0%, #090a0f 100%);
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Drag and Drop Zone (Landing State) */
-    .upload-zone {
-      border: 2px dashed rgba(139, 92, 246, 0.3);
-      background: rgba(17, 19, 31, 0.6);
-      border-radius: 16px;
-      width: 100%;
-      max-width: 600px;
-      padding: 4rem 2rem;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1.5rem;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    }
-
-    .upload-zone:hover {
-      border-color: var(--accent);
-      background: rgba(139, 92, 246, 0.05);
-      transform: translateY(-4px);
-      box-shadow: 0 30px 60px rgba(139, 92, 246, 0.1);
-    }
-
-    .upload-icon {
-      font-size: 4rem;
-      background: linear-gradient(135deg, #a78bfa, #ec4899);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.3));
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-
-    .upload-zone h2 {
-      font-size: 1.8rem;
-      color: #fff;
-    }
-
-    .upload-zone p {
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      max-width: 400px;
-      line-height: 1.6;
-    }
-
-    .btn-select {
-      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-      color: white;
-      padding: 0.75rem 2rem;
-      border-radius: 30px;
-      border: none;
-      font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
-      transition: all 0.2s ease;
-    }
-
-    .btn-select:hover {
-      transform: scale(1.03);
-      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
-    }
-
-    /* Hide default file input */
-    #fileInput {
-      display: none;
-    }
-
-    /* Cropper Editor State */
-    .editor-zone {
-      display: none; /* Shown dynamically */
-      width: 100%;
-      height: 100%;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    .canvas-container {
-      position: relative;
-      max-width: 100%;
-      max-height: calc(100vh - 160px);
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    canvas {
-      display: block;
-      cursor: crosshair;
-      user-select: none;
-    }
-
-    /* Right Controls Panel */
-    .control-panel {
-      width: 400px;
-      background-color: var(--bg-sidebar);
-      border-left: 1px solid rgba(255, 255, 255, 0.05);
-      padding: 1.5rem;
-      overflow-y: auto;
-      display: none; /* Shown dynamically */
-      flex-direction: column;
-      gap: 1.25rem;
-      box-shadow: -10px 0 35px rgba(0, 0, 0, 0.35);
-      z-index: 5;
-    }
-
-    .panel-section {
-      background: var(--bg-card);
-      border: 1px solid rgba(255, 255, 255, 0.03);
-      padding: 1.15rem;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .panel-section h3 {
-      font-size: 0.95rem;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      padding-bottom: 0.5rem;
-    }
-
-    /* Options Button Grid */
-    .options-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.5rem;
-    }
-
-    .btn-opt {
-      background-color: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      color: var(--text-main);
-      padding: 0.55rem 0.75rem;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.2rem;
-      text-align: left;
-    }
-
-    .btn-opt span.sub {
-      font-size: 0.68rem;
-      color: var(--text-muted);
-    }
-
-    .btn-opt:hover {
-      background-color: rgba(255, 255, 255, 0.07);
-      border-color: rgba(255, 255, 255, 0.12);
-    }
-
-    .btn-opt.active {
-      background-color: rgba(139, 92, 246, 0.12);
-      border-color: var(--accent);
-      color: #fff;
-    }
-
-    .btn-opt.active span.sub {
-      color: var(--accent-hover);
-    }
-
-    /* Guide control grids */
-    .guides-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.45rem;
-    }
-
-    .guide-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.55rem;
-      background: rgba(255, 255, 255, 0.01);
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .guide-item:hover {
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .guide-item.active {
-      border-color: var(--active-color);
-      background: rgba(var(--active-color-rgb), 0.07);
-    }
-
-    .guide-info {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .guide-color-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .guide-name {
-      font-size: 0.82rem;
-      font-weight: 500;
-    }
-
-    .spiral-controls {
-      display: flex;
-      gap: 0.25rem;
-      margin-top: 0.2rem;
-      padding-left: 1.25rem;
-    }
-
-    .btn-spiral-ctrl {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      color: var(--text-muted);
-      padding: 0.2rem 0.45rem;
-      border-radius: 4px;
-      font-size: 0.72rem;
-      cursor: pointer;
-    }
-
-    .btn-spiral-ctrl:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-    }
-
-    .btn-spiral-ctrl.active {
-      background: var(--color-golden);
-      color: #000;
-      border-color: var(--color-golden);
-      font-weight: 600;
-    }
-
-    /* AI Analysis Section */
-    .ai-analysis {
-      border: 1px solid rgba(139, 92, 246, 0.2);
-      background: linear-gradient(135deg, rgba(17, 19, 31, 0.85) 0%, rgba(24, 18, 48, 0.6) 100%);
-    }
-
-    .ai-analysis h3 span.badge {
-      background: linear-gradient(to right, #ec4899, #8b5cf6);
-      font-size: 0.65rem;
-      padding: 0.15rem 0.35rem;
-      border-radius: 20px;
-      margin-left: auto;
-      color: white;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .ai-report {
-      font-size: 0.8rem;
-      line-height: 1.45;
-      color: var(--text-muted);
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .ai-point-item {
-      display: flex;
-      gap: 0.5rem;
-      align-items: flex-start;
-      background: rgba(255, 255, 255, 0.02);
-      padding: 0.45rem 0.65rem;
-      border-radius: 6px;
-      border-left: 3px solid var(--accent);
-    }
-
-    .ai-point-item.light {
-      border-left-color: var(--color-golden);
-    }
-
-    .ai-point-title {
-      font-weight: 600;
-      color: var(--text-main);
-      font-size: 0.78rem;
-    }
-
-    .ai-point-desc {
-      font-size: 0.74rem;
-      margin-top: 0.15rem;
-    }
-
-    .ai-hotspot-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 0.2rem;
-      font-size: 0.78rem;
-    }
-
-    /* Switch styling */
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 32px;
-      height: 18px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(255, 255, 255, 0.1);
-      transition: .2s;
-      border-radius: 34px;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 12px;
-      width: 12px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .2s;
-      border-radius: 50%;
-    }
-
-    input:checked + .slider {
-      background-color: var(--accent);
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(14px);
-    }
-
-    /* Action buttons */
-    .action-container {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-top: auto;
-      padding-top: 0.75rem;
-    }
-
-    .btn-main {
-      background: linear-gradient(to right, #8b5cf6, #ec4899);
-      color: white;
-      border: none;
-      padding: 0.8rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
-      transition: all 0.2s ease;
-    }
-
-    .btn-main:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.35);
-      filter: brightness(1.1);
-    }
-
-    .btn-main:active {
-      transform: translateY(1px);
-    }
-
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-muted);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 0.6rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.06);
-      color: #fff;
-    }
-
-    .orientation-toggle {
-      display: flex;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 0.2rem;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      margin-bottom: 0.4rem;
-    }
-
-    .btn-orientation {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 0.4rem;
-      border-radius: 6px;
-      font-size: 0.76rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: center;
-    }
-
-    .btn-orientation:hover {
-      color: #fff;
-    }
-
-    .btn-orientation.active {
-      background: rgba(139, 92, 246, 0.15);
-      color: #fff;
-      border: 1px solid rgba(139, 92, 246, 0.2);
-    }
-
-    .composition-info {
-      font-size: 0.74rem;
-      color: var(--text-muted);
-      background: rgba(255, 255, 255, 0.01);
-      border: 1px dashed rgba(255, 255, 255, 0.08);
-      padding: 0.65rem;
-      border-radius: 8px;
-      margin-top: 0.2rem;
-    }
-
-    .composition-info strong {
-      color: var(--text-main);
-      display: block;
-      margin-bottom: 0.2rem;
-    }
-
-    /* Analyzing Loading state */
-    .analyzer-loading {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(9, 10, 15, 0.85);
-      z-index: 100;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      backdrop-filter: blur(8px);
-    }
-
-    .spinner {
-      width: 45px;
-      height: 45px;
-      border: 3px solid rgba(139, 92, 246, 0.15);
-      border-radius: 50%;
-      border-top-color: var(--accent);
-      animation: spin 1s ease-in-out infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .analyzer-loading p {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 600;
-      color: #fff;
-      font-size: 1.1rem;
-    }
-
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-      width: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: var(--bg-sidebar);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .dot-thirds { background-color: var(--color-thirds); }
-    .dot-golden { background-color: var(--color-golden); }
-    .dot-symmetry { background-color: var(--color-symmetry); }
-    .dot-triangle { background-color: var(--color-triangle); }
   </style>
+  
+  <!-- Custom CSS overrides -->
+  <link rel="stylesheet" href="app.css">
 </head>
-<body>
+<body class="bg-slate-950 text-slate-100 flex flex-col min-h-screen">
 
-  <header>
-    <h1 id="logo"><span class="logo-icon">🎨</span> 絵画構図アシスタント・クロッパー</h1>
-    <div id="fileInfoPanel" style="display: none;">
-      <p id="fileDetails">解像度: - x -</p>
+  <header class="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border-b border-violet-500/15 py-3 px-6 flex justify-between items-center sticky top-0 z-10 backdrop-blur-md">
+    <h1 id="logo" class="text-xl font-bold tracking-tight bg-gradient-to-r from-violet-400 via-purple-500 to-pink-500 bg-clip-text text-transparent flex items-center gap-2 cursor-pointer select-none">
+      <span class="text-2xl">🎨</span> 絵画構図アシスタント・クロッパー
+    </h1>
+    <div id="fileInfoPanel" class="hidden">
+      <p id="fileDetails" class="text-xs text-slate-400">解像度: - x -</p>
     </div>
   </header>
 
-  <div class="main-container">
+  <div class="main-container flex flex-1 h-[calc(100vh-61px)] min-h-[500px]">
     <!-- Left Workspace -->
-    <div class="workspace">
+    <div class="workspace flex-1 p-6 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 to-slate-950 relative overflow-hidden">
       <!-- 1. Landing state (file uploader) -->
-      <div class="upload-zone" id="uploadZone">
-        <div class="upload-icon">📥</div>
-        <h2>画像をアップロード</h2>
-        <p>ここに画像をドラッグ＆ドロップするか、ファイルを選択してください。<br>（画像データはローカルのブラウザ内でのみ処理され、サーバーには送信されません）</p>
-        <button class="btn-select" id="btnSelectFile">ファイルを選択</button>
+      <div class="upload-zone border-2 border-dashed border-violet-500/30 bg-slate-900/60 rounded-2xl w-full max-w-lg p-16 text-center cursor-pointer transition-all duration-300 hover:border-violet-500 hover:bg-violet-500/5 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(139,92,246,0.15)] flex flex-col items-center justify-center gap-6 backdrop-blur-sm shadow-2xl" id="uploadZone">
+        <div class="text-6xl filter drop-shadow-[0_4px_8px_rgba(139,92,246,0.3)] animate-float">📥</div>
+        <h2 class="text-2xl font-bold text-white">画像をアップロード</h2>
+        <p class="text-sm text-slate-400 max-w-sm leading-relaxed">ここに画像をドラッグ＆ドロップするか、ファイルを選択してください。<br>（画像データはローカルのブラウザ内でのみ処理され、サーバーには送信されません）</p>
+        <button class="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-semibold py-2.5 px-8 rounded-full shadow-[0_4px_15px_rgba(139,92,246,0.4)] transition duration-200 hover:scale-105 cursor-pointer" id="btnSelectFile">ファイルを選択</button>
         <input type="file" id="fileInput" accept="image/*">
       </div>
 
       <!-- 2. Processing State -->
-      <div class="analyzer-loading" id="analyzerLoading">
-        <div class="spinner"></div>
-        <p>画像を解析中（エッジ＆輝度検出）...</p>
+      <div class="analyzer-loading absolute inset-0 bg-slate-950/85 z-50 flex flex-col items-center justify-center gap-4 backdrop-blur-md hidden" id="analyzerLoading">
+        <div class="w-12 h-12 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
+        <p class="font-semibold text-white text-lg">画像を解析中（輝度検出）...</p>
       </div>
 
       <!-- 3. Editor state -->
-      <div class="editor-zone" id="editorZone">
-        <div class="canvas-container">
-          <canvas id="cropCanvas"></canvas>
+      <div class="editor-zone w-full h-full flex flex-col items-center justify-center relative hidden" id="editorZone">
+        <div class="canvas-container relative max-w-full max-h-[calc(100vh-160px)] shadow-[0_25px_60px_rgba(0,0,0,0.8)] rounded-lg overflow-hidden border border-white/5">
+          <canvas id="cropCanvas" class="block cursor-crosshair select-none"></canvas>
         </div>
       </div>
     </div>
 
     <!-- Right Controls Panel -->
-    <div class="control-panel" id="controlPanel">
+    <div class="control-panel w-[400px] bg-slate-900/95 border-l border-white/5 p-6 overflow-y-auto hidden flex-col gap-5 shadow-2xl z-5" id="controlPanel">
       
       <!-- AI analysis of the painting composition -->
-      <div class="panel-section ai-analysis">
-        <h3>✨ AI 構図分析解析 <span class="badge" id="aiStatusBadge">LOCAL JS</span></h3>
-        <div class="ai-report">
+      <div class="panel-section bg-slate-900/50 border border-violet-500/20 bg-gradient-to-br from-slate-900/80 to-purple-950/20 p-5 rounded-2xl flex flex-col gap-3 shadow-inner" id="aiAnalysisPanel">
+        <h3 class="text-sm font-semibold text-slate-100 flex items-center border-b border-white/5 pb-2">✨ AI 構図分析解析 <span class="bg-gradient-to-r from-pink-500 to-violet-500 text-white text-[10px] font-bold py-0.5 px-2 rounded-full uppercase tracking-wider ml-auto">LOCAL JS</span></h3>
+        <div class="ai-report text-xs leading-relaxed text-slate-400 flex flex-col gap-3">
           <p>画像のピクセル構造を解析し、絵画構図における主要なフォーカス（焦点）を抽出しました：</p>
           
-
-
-          <div class="ai-point-item light">
+          <div class="ai-point-item flex gap-3 items-start bg-white/2 p-3 rounded-lg border-l-3 border-golden">
             <div>
-              <div class="ai-point-title">☀️ 光明の焦点 (最高輝度エリア)</div>
-              <div class="ai-point-desc" id="aiLightDesc">
+              <div class="ai-point-title font-semibold text-slate-200 text-xs">☀️ 光明の焦点 (最高輝度エリア)</div>
+              <div class="ai-point-desc text-[11px] mt-1" id="aiLightDesc">
                 位置: <strong>( - %, - %)</strong><br>画面の中で最も光が集まるポイントです。古典絵画の「キアロスクーロ（明暗法）」的アプローチとして、この光点と周囲の暗部とのバランスを意識したトリミングが有効です。
               </div>
             </div>
           </div>
           
-          <div class="ai-hotspot-toggle">
+          <div class="ai-hotspot-toggle flex items-center justify-between mt-1 text-xs">
             <span>画面上に分析スポットを表示</span>
-            <label class="switch">
-              <input type="checkbox" id="toggleHotspots" checked>
-              <span class="slider"></span>
+            <label class="relative inline-block w-8 h-4.5">
+              <input type="checkbox" id="toggleHotspots" class="opacity-0 w-0 h-0" checked>
+              <span class="switch-slider absolute cursor-pointer inset-0"></span>
             </label>
           </div>
         </div>
       </div>
 
+      <!-- Preview Mode -->
+      <div class="panel-section bg-slate-900/50 border border-white/5 p-5 rounded-2xl flex flex-col gap-3 shadow-inner">
+        <h3 class="text-sm font-semibold text-slate-100 flex items-center border-b border-white/5 pb-2">👁️ トリミングプレビュー (Preview)</h3>
+        <div class="ai-hotspot-toggle flex items-center justify-between text-xs">
+          <span>プレビューモード (ガイド非表示/背景黒)</span>
+          <label class="relative inline-block w-8 h-4.5">
+            <input type="checkbox" id="togglePreview" class="opacity-0 w-0 h-0">
+            <span class="switch-slider absolute cursor-pointer inset-0"></span>
+          </label>
+        </div>
+      </div>
+
       <!-- Composition Guides selection -->
-      <div class="panel-section">
-        <h3>📐 絵画構図ガイド (Overlays)</h3>
-        <div class="guides-list">
+      <div class="panel-section bg-slate-900/50 border border-white/5 p-5 rounded-2xl flex flex-col gap-3 shadow-inner">
+        <h3 class="text-sm font-semibold text-slate-100 flex items-center border-b border-white/5 pb-2">📐 絵画構図ガイド (Overlays)</h3>
+        <div class="guides-list flex flex-col gap-2">
           
           <div class="guide-item active" data-guide="thirds" style="--active-color: var(--color-thirds); --active-color-rgb: 6, 182, 212;">
-            <div class="guide-info">
-              <div class="guide-color-dot dot-thirds"></div>
-              <span class="guide-name">三分割法 (Rule of Thirds)</span>
+            <div class="guide-info flex items-center gap-2">
+              <div class="guide-color-dot w-2 h-2 rounded-full dot-thirds"></div>
+              <span class="guide-name text-xs font-medium text-slate-200">三分割法 (Rule of Thirds)</span>
             </div>
           </div>
 
           <div class="guide-item" data-guide="golden_spiral" style="--active-color: var(--color-golden); --active-color-rgb: 245, 158, 11;">
-            <div class="guide-info">
-              <div class="guide-color-dot dot-golden"></div>
-              <span class="guide-name">黄金比 / 黄金螺旋 (Golden Spiral)</span>
+            <div class="guide-info flex items-center gap-2">
+              <div class="guide-color-dot w-2 h-2 rounded-full dot-golden"></div>
+              <span class="guide-name text-xs font-medium text-slate-200">黄金比 / 黄金螺旋 (Golden Spiral)</span>
             </div>
           </div>
           <!-- Spiral direction controls -->
-          <div class="spiral-controls" id="spiralControls" style="display: none;">
+          <div class="spiral-controls flex gap-1 mt-1 pl-4 hidden" id="spiralControls">
             <button class="btn-spiral-ctrl active" data-dir="0">左上</button>
             <button class="btn-spiral-ctrl" data-dir="1">右上</button>
             <button class="btn-spiral-ctrl" data-dir="2">右下</button>
@@ -713,81 +132,69 @@
           </div>
 
           <div class="guide-item" data-guide="dynamic_symmetry" style="--active-color: var(--color-symmetry); --active-color-rgb: 236, 72, 153;">
-            <div class="guide-info">
-              <div class="guide-color-dot dot-symmetry"></div>
-              <span class="guide-name">動的対称性 (Dynamic Symmetry)</span>
+            <div class="guide-info flex items-center gap-2">
+              <div class="guide-color-dot w-2 h-2 rounded-full dot-symmetry"></div>
+              <span class="guide-name text-xs font-medium text-slate-200">動的対称性 (Dynamic Symmetry)</span>
             </div>
           </div>
 
           <div class="guide-item" data-guide="golden_triangle" style="--active-color: var(--color-triangle); --active-color-rgb: 132, 204, 22;">
-            <div class="guide-info">
-              <div class="guide-color-dot dot-triangle"></div>
-              <span class="guide-name">黄金三角形 (Golden Triangles)</span>
+            <div class="guide-info flex items-center gap-2">
+              <div class="guide-color-dot w-2 h-2 rounded-full dot-triangle"></div>
+              <span class="guide-name text-xs font-medium text-slate-200">黄金三角形 (Golden Triangles)</span>
             </div>
           </div>
 
         </div>
 
-        <div class="composition-info" id="compositionInfo">
+        <div class="composition-info text-[11px] text-slate-400 bg-white/1 border border-dashed border-white/8 p-3 rounded-lg mt-1" id="compositionInfo">
           <strong>三分割法 (Rule of Thirds)</strong>
-          画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。AIが検出した「詳細の焦点」を交点付近に置くのがお勧めです。
-        </div>
-      </div>
-
-      <!-- Preview Mode -->
-      <div class="panel-section">
-        <h3>👁️ トリミングプレビュー (Preview)</h3>
-        <div class="ai-hotspot-toggle">
-          <span>プレビューモード (ガイド非表示/背景黒)</span>
-          <label class="switch">
-            <input type="checkbox" id="togglePreview">
-            <span class="slider"></span>
-          </label>
+          画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。AIが検出した「光明の焦点」や主要な主題を交点付近に置くのがお勧めです。
         </div>
       </div>
 
       <!-- Aspect Ratios selection -->
-      <div class="panel-section">
-        <h3>✂️ アスペクト比 (Aspect Ratios)</h3>
+      <div class="panel-section bg-slate-900/50 border border-white/5 p-5 rounded-2xl flex flex-col gap-3 shadow-inner">
+        <h3 class="text-sm font-semibold text-slate-100 flex items-center border-b border-white/5 pb-2">✂️ アスペクト比 (Aspect Ratios)</h3>
         <!-- Orientation Toggle -->
-        <div class="orientation-toggle">
+        <div class="orientation-toggle flex bg-white/2 p-1 border border-white/5 rounded-lg mb-1">
           <button class="btn-orientation active" id="btnLandscape">横向き (Landscape)</button>
           <button class="btn-orientation" id="btnPortrait">縦向き (Portrait)</button>
         </div>
-        <div class="options-grid">
+        <div class="options-grid grid grid-cols-2 gap-2">
           <button class="btn-opt active" data-ratio="free" id="ratioFree">
             <span>自由 (Free)</span>
-            <span class="sub">任意のサイズ</span>
+            <span class="sub text-[10px] text-slate-500">任意のサイズ</span>
           </button>
           <button class="btn-opt" data-ratio="1" id="ratio1">
             <span>1:1 (正方形)</span>
-            <span class="sub">静寂・古典的ポートレート</span>
+            <span class="sub text-[10px] text-slate-500">静寂・古典的ポートレート</span>
           </button>
           <button class="btn-opt" data-ratio="1.333" id="ratio43">
             <span class="ratio-label">4:3 (標準画角)</span>
-            <span class="ratio-sub">古典的な油絵キャンバス比</span>
+            <span class="ratio-sub sub text-[10px] text-slate-500">古典的な油絵キャンバス比</span>
           </button>
           <button class="btn-opt" data-ratio="1.5" id="ratio32">
             <span class="ratio-label">3:2 (写真標準)</span>
-            <span class="ratio-sub">絵画的風景画に最適</span>
+            <span class="ratio-sub sub text-[10px] text-slate-500">絵画的風景画に最適</span>
           </button>
           <button class="btn-opt" data-ratio="1.777" id="ratio169">
             <span class="ratio-label">16:9 (シネマ)</span>
-            <span class="ratio-sub">ダイナミックな映画風横長</span>
+            <span class="ratio-sub sub text-[10px] text-slate-500">ダイナミックな映画風横長</span>
           </button>
           <button class="btn-opt" data-ratio="1.618" id="ratioGolden">
             <span class="ratio-label">1.618 (黄金長方形)</span>
-            <span class="ratio-sub">最も調和する美の比率</span>
+            <span class="ratio-sub sub text-[10px] text-slate-500">最も調和する美の比率</span>
           </button>
         </div>
       </div>
 
       <!-- Action Button -->
-      <div class="action-container">
-        <button class="btn-main" id="btnCrop">
+      <div class="action-container flex flex-col gap-2.5 mt-auto pt-3">
+        <button class="btn-main bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white font-semibold py-3 px-4 rounded-lg text-sm shadow-[0_4px_12px_rgba(139,92,246,0.25)] transition duration-200 hover:-translate-y-0.5 cursor-pointer flex justify-center items-center gap-2" id="btnCrop">
           <span>💾</span> 構図を決定して保存する
         </button>
-        <button class="btn-secondary" id="btnReset">
+        <button class="btn-secondary bg-white/2 hover:bg-white/5 text-slate-400 hover:text-white border border-white/8 py-2 px-4 rounded-lg text-xs cursor-pointer transition duration-200" id="btnReset">
           別の画像をアップロードする
         </button>
       </div>
@@ -795,908 +202,7 @@
     </div>
   </div>
 
-  <script>
-    // Analysis focal points computed in JS client-side
-    let aiSpots = {
-      light: { x_pct: 50, y_pct: 50, label: "光明の焦点" }
-    };
-
-    // Guide description texts
-    const guideDescriptions = {
-      thirds: "<strong>三分割法 (Rule of Thirds)</strong>画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。AIが検出した「光明の焦点」や主要な主題を交点付近に置くのがお勧めです。",
-      golden_spiral: "<strong>黄金螺旋 (Golden Spiral)</strong>黄金比に基づいて描かれる対数螺旋。螺旋の収束点（中心）に視線を誘導するように主題を配置します。螺旋の向きを切り替えて、主要な被写体とマッチさせてください。",
-      dynamic_symmetry: "<strong>動的対称性 (Dynamic Symmetry)</strong>対角線とそこから対角に下ろした垂線による複雑なグリッド。西洋美術や古典絵画（ルネサンス期など）で非常によく使われ、視線の自然な流れや画面の動き（ダイナミズム）を設計できます。",
-      golden_triangle: "<strong>黄金三角形 (Golden Triangles)</strong>対角線とその他の角から引いた垂線で分割される三角形。動きのある被写体や対角線の方向性を強調し、緊張感とバランスを両立させます。"
-    };
-
-    // DOM Elements
-    const logo = document.getElementById('logo');
-    const uploadZone = document.getElementById('uploadZone');
-    const analyzerLoading = document.getElementById('analyzerLoading');
-    const editorZone = document.getElementById('editorZone');
-    const controlPanel = document.getElementById('controlPanel');
-    const fileInfoPanel = document.getElementById('fileInfoPanel');
-    const fileDetails = document.getElementById('fileDetails');
-    const btnSelectFile = document.getElementById('btnSelectFile');
-    const fileInput = document.getElementById('fileInput');
-    const canvas = document.getElementById('cropCanvas');
-    const ctx = canvas.getContext('2d');
-    const toggleHotspots = document.getElementById('toggleHotspots');
-    const togglePreview = document.getElementById('togglePreview');
-    const compositionInfo = document.getElementById('compositionInfo');
-    const btnCrop = document.getElementById('btnCrop');
-    const btnReset = document.getElementById('btnReset');
-    const spiralControls = document.getElementById('spiralControls');
-    const aiLightDesc = document.getElementById('aiLightDesc');
-
-    // State Variables
-    let img = new Image();
-    let imgLoaded = false;
-    let originalFileName = 'cropped_composition.jpg';
-    
-    // Crop box coordinates in normalized scale [0..1]
-    let cropBox = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 }; 
-    let currentRatio = 'free'; // 'free' or float value
-    let activeGuide = 'thirds'; // 'thirds', 'golden_spiral', ...
-    let spiralDirection = 0; // 0: TL, 1: TR, 2: BR, 3: BL
-    let showHotspots = true;
-    let isPreviewMode = false;
-
-    // Interaction variables
-    let isDragging = false;
-    let isResizing = false;
-    let dragStart = { x: 0, y: 0 };
-    let activeHandle = null; // 'tl', 'tr', 'bl', 'br', 't', 'b', 'l', 'r', 'move'
-    
-    const HANDLE_SIZE = 12;
-
-    // Trigger File Input Click
-    btnSelectFile.addEventListener('click', () => fileInput.click());
-    uploadZone.addEventListener('click', (e) => {
-      if (e.target !== btnSelectFile) {
-        fileInput.click();
-      }
-    });
-
-    // Drag and Drop files
-    uploadZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadZone.style.borderColor = 'var(--accent)';
-      uploadZone.style.background = 'rgba(139, 92, 246, 0.08)';
-    });
-
-    uploadZone.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      uploadZone.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-      uploadZone.style.background = 'rgba(17, 19, 31, 0.6)';
-    });
-
-    uploadZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        handleImageFile(files[0]);
-      }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        handleImageFile(e.target.files[0]);
-      }
-    });
-
-    logo.addEventListener('click', () => {
-      resetUpload();
-    });
-
-    function handleImageFile(file) {
-      if (!file.type.startsWith('image/')) {
-        alert('画像ファイルを選択してください。');
-        return;
-      }
-      originalFileName = file.name;
-      
-      // Show loading
-      uploadZone.style.display = 'none';
-      analyzerLoading.style.display = 'flex';
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    img.onload = () => {
-      imgLoaded = true;
-      
-      // Update File details
-      fileDetails.innerText = `画質: ${img.naturalWidth} x ${img.naturalHeight} | ${originalFileName}`;
-      fileInfoPanel.style.display = 'block';
-
-      // Perform JS-based client side analysis
-      analyzeImageComposition();
-
-      // Setup editor UI
-      initCropBox();
-      resizeCanvas();
-      
-      // Hide loading, show editor
-      analyzerLoading.style.display = 'none';
-      editorZone.style.display = 'flex';
-      controlPanel.style.display = 'flex';
-      
-      draw();
-    };
-
-    // CLIENT SIDE LIGHTNESS ANALYSIS (COMPUTATIONAL COGNITION)
-    function analyzeImageComposition() {
-      // Create a small offscreen canvas to perform fast pixel analysis
-      const analysisCanvas = document.createElement('canvas');
-      const analysisCtx = analysisCanvas.getContext('2d');
-      
-      // Downscale to max 300px width/height for immediate analysis
-      const maxDim = 300;
-      let w = img.naturalWidth;
-      let h = img.naturalHeight;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) {
-          h = Math.round((h * maxDim) / w);
-          w = maxDim;
-        } else {
-          w = Math.round((w * maxDim) / h);
-          h = maxDim;
-        }
-      }
-      
-      analysisCanvas.width = w;
-      analysisCanvas.height = h;
-      analysisCtx.drawImage(img, 0, 0, w, h);
-      
-      const imgData = analysisCtx.getImageData(0, 0, w, h);
-      const data = imgData.data;
-      
-      // Calculate 12x12 grid averages for brightness
-      const gridRows = 12;
-      const gridCols = 12;
-      const colW = w / gridCols;
-      const rowH = h / gridRows;
-      
-      let maxBrightness = -1;
-      let maxBrightCell = { r: 6, c: 6 };
-      
-      for (let r = 0; r < gridRows; r++) {
-        for (let c = 0; c < gridCols; c++) {
-          const rStart = Math.floor(r * rowH);
-          const rEnd = Math.min(h, Math.floor((r + 1) * rowH));
-          const cStart = Math.floor(c * colW);
-          const cEnd = Math.min(w, Math.floor((c + 1) * colW));
-          
-          let brightSum = 0;
-          let count = 0;
-          
-          for (let y = rStart; y < rEnd; y++) {
-            for (let x = cStart; x < cEnd; x++) {
-              const idx = (y * w + x) * 4;
-              const rVal = data[idx];
-              const gVal = data[idx + 1];
-              const bVal = data[idx + 2];
-              const Y = 0.299 * rVal + 0.587 * gVal + 0.114 * bVal;
-              brightSum += Y;
-              count++;
-            }
-          }
-          
-          const avgBright = brightSum / (count || 1);
-          if (avgBright > maxBrightness) {
-            maxBrightness = avgBright;
-            maxBrightCell = { r, c };
-          }
-        }
-      }
-      
-      // Convert grid cell to normalized coordinates
-      const lightX = ((maxBrightCell.c + 0.5) * colW) / w * 100;
-      const lightY = ((maxBrightCell.r + 0.5) * rowH) / h * 100;
-      
-      aiSpots.light.x_pct = Math.round(lightX * 10) / 10;
-      aiSpots.light.y_pct = Math.round(lightY * 10) / 10;
-      
-      // Update UI descriptions
-      aiLightDesc.innerHTML = `位置: <strong>(${aiSpots.light.x_pct}%, ${aiSpots.light.y_pct}%)</strong><br>最も明るい光源や反射面の位置です。陰影（キアロスクーロ）のバランスや、見る人の視線が最初に移るポイントとして構図に取り入れてみましょう。`;
-    }
-
-    function resetUpload() {
-      imgLoaded = false;
-      fileInput.value = '';
-      editorZone.style.display = 'none';
-      controlPanel.style.display = 'none';
-      fileInfoPanel.style.display = 'none';
-      uploadZone.style.display = 'flex';
-    }
-
-    btnReset.addEventListener('click', resetUpload);
-
-    function initCropBox() {
-      // Initial large crop area
-      cropBox = { x: 0.15, y: 0.15, w: 0.7, h: 0.7 };
-      applyAspectRatio();
-    }
-
-    function applyAspectRatio() {
-      if (currentRatio === 'free') return;
-      
-      const targetRatio = parseFloat(currentRatio);
-      const imgRatio = img.naturalWidth / img.naturalHeight;
-      
-      const cx = cropBox.x + cropBox.w / 2;
-      const cy = cropBox.y + cropBox.h / 2;
-      
-      let newW = cropBox.w;
-      let newH = newW / targetRatio * imgRatio;
-      
-      if (newH > 0.95) {
-        newH = 0.8;
-        newW = newH * targetRatio / imgRatio;
-      }
-      
-      cropBox.w = newW;
-      cropBox.h = newH;
-      cropBox.x = cx - newW / 2;
-      cropBox.y = cy - newH / 2;
-      
-      boundCropBox();
-    }
-
-    function boundCropBox() {
-      cropBox.w = Math.max(0.05, Math.min(1.0, cropBox.w));
-      cropBox.h = Math.max(0.05, Math.min(1.0, cropBox.h));
-      
-      if (cropBox.x < 0) cropBox.x = 0;
-      if (cropBox.y < 0) cropBox.y = 0;
-      if (cropBox.x + cropBox.w > 1) {
-        cropBox.x = 1 - cropBox.w;
-      }
-      if (cropBox.y + cropBox.h > 1) {
-        cropBox.y = 1 - cropBox.h;
-      }
-    }
-
-    // Set canvas dimensions relative to workspace container
-    function resizeCanvas() {
-      if (!imgLoaded) return;
-      
-      const workspace = document.querySelector('.workspace');
-      const maxW = workspace.clientWidth - 48;
-      const maxH = workspace.clientHeight - 48;
-      
-      const imgW = img.naturalWidth;
-      const imgH = img.naturalHeight;
-      
-      let w = imgW;
-      let h = imgH;
-      
-      if (w > maxW) {
-        w = maxW;
-        h = (imgH * maxW) / imgW;
-      }
-      if (h > maxH) {
-        h = maxH;
-        w = (imgW * maxH) / imgH;
-      }
-      
-      canvas.width = w;
-      canvas.height = h;
-    }
-
-    window.addEventListener('resize', () => {
-      if (imgLoaded) {
-        resizeCanvas();
-        draw();
-      }
-    });
-
-    function toCanvasCoords(box) {
-      return {
-        x: box.x * canvas.width,
-        y: box.y * canvas.height,
-        w: box.w * canvas.width,
-        h: box.h * canvas.height
-      };
-    }
-
-    // DRAW loop
-    function draw() {
-      if (!imgLoaded) return;
-      
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
-      const cb = toCanvasCoords(cropBox);
-      
-      // Shadow mask outside crop box
-      ctx.fillStyle = isPreviewMode ? 'rgba(0, 0, 0, 1.0)' : 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(0, 0, canvas.width, cb.y); // top
-      ctx.fillRect(0, cb.y + cb.h, canvas.width, canvas.height - (cb.y + cb.h)); // bottom
-      ctx.fillRect(0, cb.y, cb.x, cb.h); // left
-      ctx.fillRect(cb.x + cb.w, cb.y, canvas.width - (cb.x + cb.w), cb.h); // right
-      
-      // Crop border, guides, hotspots, and handles (only when preview mode is OFF)
-      if (!isPreviewMode) {
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.8;
-        ctx.strokeRect(cb.x, cb.y, cb.w, cb.h);
-        
-        // Render composition overlays
-        drawGuide(cb);
-
-        // AI hot spots
-        if (showHotspots) {
-          drawAISpots();
-        }
-
-        // Drag handles
-        drawHandles(cb);
-      }
-    }
-
-    function drawGuide(cb) {
-      ctx.save();
-      
-      if (activeGuide === 'thirds') {
-        ctx.strokeStyle = 'rgba(6, 182, 212, 0.6)';
-        ctx.lineWidth = 1.5;
-        
-        ctx.beginPath();
-        // vertical
-        ctx.moveTo(cb.x + cb.w / 3, cb.y);
-        ctx.lineTo(cb.x + cb.w / 3, cb.y + cb.h);
-        ctx.moveTo(cb.x + (cb.w * 2) / 3, cb.y);
-        ctx.lineTo(cb.x + (cb.w * 2) / 3, cb.y + cb.h);
-        
-        // horizontal
-        ctx.moveTo(cb.x, cb.y + cb.h / 3);
-        ctx.lineTo(cb.x + cb.w, cb.y + cb.h / 3);
-        ctx.moveTo(cb.x, cb.y + (cb.h * 2) / 3);
-        ctx.lineTo(cb.x + cb.w, cb.y + (cb.h * 2) / 3);
-        ctx.stroke();
-      } 
-      else if (activeGuide === 'golden_spiral') {
-        drawSpiralCurve(cb.x, cb.y, cb.w, cb.h, spiralDirection);
-      } 
-      else if (activeGuide === 'dynamic_symmetry') {
-        ctx.strokeStyle = 'rgba(236, 72, 153, 0.55)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        
-        // Main diagonals
-        ctx.moveTo(cb.x, cb.y);
-        ctx.lineTo(cb.x + cb.w, cb.y + cb.h);
-        ctx.moveTo(cb.x, cb.y + cb.h);
-        ctx.lineTo(cb.x + cb.w, cb.y);
-        
-        // Reciprocals (intersection points)
-        const w2 = cb.w * cb.w;
-        const h2 = cb.h * cb.h;
-        const t = w2 / (w2 + h2);
-        
-        ctx.moveTo(cb.x + cb.w, cb.y);
-        ctx.lineTo(cb.x + t * cb.w, cb.y + t * cb.h);
-        
-        ctx.moveTo(cb.x, cb.y + cb.h);
-        ctx.lineTo(cb.x + (1-t)*cb.w, cb.y + (1-t)*cb.h);
-        
-        ctx.moveTo(cb.x, cb.y);
-        ctx.lineTo(cb.x + (1-t)*cb.w, cb.y + t*cb.h);
-        
-        ctx.moveTo(cb.x + cb.w, cb.y + cb.h);
-        ctx.lineTo(cb.x + t*cb.w, cb.y + (1-t)*cb.h);
-        
-        ctx.stroke();
-      } 
-      else if (activeGuide === 'golden_triangle') {
-        ctx.strokeStyle = 'rgba(132, 204, 22, 0.6)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        
-        ctx.moveTo(cb.x, cb.y + cb.h);
-        ctx.lineTo(cb.x + cb.w, cb.y);
-        
-        const w2 = cb.w * cb.w;
-        const h2 = cb.h * cb.h;
-        const t = w2 / (w2 + h2);
-        
-        ctx.moveTo(cb.x, cb.y);
-        ctx.lineTo(cb.x + t * cb.w, cb.y + (1 - t) * cb.h);
-        
-        ctx.moveTo(cb.x + cb.w, cb.y + cb.h);
-        ctx.lineTo(cb.x + (1 - t) * cb.w, cb.y + t * cb.h);
-        
-        ctx.stroke();
-      }
-      
-      ctx.restore();
-    }
-
-    function drawSpiralCurve(x, y, w, h, direction) {
-      ctx.save();
-      // Apply translation and scaling to flip/rotate the spiral
-      ctx.translate(x + w / 2, y + h / 2);
-      if (direction === 1) {
-        ctx.scale(-1, 1);
-      } else if (direction === 2) {
-        ctx.scale(-1, -1);
-      } else if (direction === 3) {
-        ctx.scale(1, -1);
-      }
-      ctx.translate(-w / 2, -h / 2);
-
-      const phi = 1.61803398875;
-      
-      // Determine the size and offset of the virtual golden rectangle that fits inside [0, 0, w, h]
-      let w_gold, h_gold;
-      let x_off = 0, y_off = 0;
-      
-      if (w / h >= phi) {
-        // Wide crop box: fit by height
-        h_gold = h;
-        w_gold = h * phi;
-        x_off = (w - w_gold) / 2;
-      } else {
-        // Narrow/Tall crop box: fit by width
-        w_gold = w;
-        h_gold = w / phi;
-        y_off = (h - h_gold) / 2;
-      }
-
-      // We partition the virtual golden rectangle [x_off, y_off, w_gold, h_gold]
-      let x1 = x_off, x2 = x_off + w_gold, y1 = y_off, y2 = y_off + h_gold;
-      let squares = [];
-      
-      for (let i = 0; i < 8; i++) {
-        let s;
-        const mod = i % 4;
-        if (mod === 0) {
-          s = y2 - y1;
-          squares.push({
-            cx: x1 + s,
-            cy: y1 + s,
-            r: s,
-            startAngle: Math.PI,
-            endAngle: 1.5 * Math.PI
-          });
-          x1 += s;
-        } else if (mod === 1) {
-          s = x2 - x1;
-          squares.push({
-            cx: x1,
-            cy: y1 + s,
-            r: s,
-            startAngle: 1.5 * Math.PI,
-            endAngle: 2 * Math.PI
-          });
-          y1 += s;
-        } else if (mod === 2) {
-          s = y2 - y1;
-          squares.push({
-            cx: x2 - s,
-            cy: y1,
-            r: s,
-            startAngle: 0,
-            endAngle: 0.5 * Math.PI
-          });
-          x2 -= s;
-        } else if (mod === 3) {
-          s = x2 - x1;
-          squares.push({
-            cx: x1 + s,
-            cy: y2 - s,
-            r: s,
-            startAngle: 0.5 * Math.PI,
-            endAngle: Math.PI
-          });
-          y2 -= s;
-        }
-      }
-
-      // 1. Draw Fibonacci partition lines (grid)
-      ctx.beginPath();
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
-      ctx.lineWidth = 1;
-      
-      // Let's trace the boundary lines of the squares
-      let gx1 = x_off, gx2 = x_off + w_gold, gy1 = y_off, gy2 = y_off + h_gold;
-      for (let i = 0; i < 7; i++) {
-        const mod = i % 4;
-        if (mod === 0) {
-          let s = gy2 - gy1;
-          ctx.moveTo(gx1 + s, gy1);
-          ctx.lineTo(gx1 + s, gy2);
-          gx1 += s;
-        } else if (mod === 1) {
-          let s = gx2 - gx1;
-          ctx.moveTo(gx1, gy1 + s);
-          ctx.lineTo(gx2, gy1 + s);
-          gy1 += s;
-        } else if (mod === 2) {
-          let s = gy2 - gy1;
-          ctx.moveTo(gx2 - s, gy1);
-          ctx.lineTo(gx2 - s, gy2);
-          gx2 -= s;
-        } else if (mod === 3) {
-          let s = gx2 - gx1;
-          ctx.moveTo(gx1, gy2 - s);
-          ctx.lineTo(gx2, gy2 - s);
-          gy2 -= s;
-        }
-      }
-      ctx.stroke();
-
-      // 2. Draw continuous golden spiral curve
-      ctx.beginPath();
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
-      ctx.lineWidth = 1.8;
-
-      // Start at the first point: bottom-left of the first square
-      const first = squares[0];
-      const startX = first.cx + first.r * Math.cos(first.startAngle);
-      const startY = first.cy + first.r * Math.sin(first.startAngle);
-      ctx.moveTo(startX, startY);
-
-      // Sequentially add each arc to create a single continuous path
-      squares.forEach(sq => {
-        ctx.arc(sq.cx, sq.cy, sq.r, sq.startAngle, sq.endAngle, false);
-      });
-
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawAISpots() {
-      ctx.save();
-      
-      // Light Focus
-      const lightX = (aiSpots.light.x_pct / 100) * canvas.width;
-      const lightY = (aiSpots.light.y_pct / 100) * canvas.height;
-      
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(lightX, lightY, 14, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.45)';
-      ctx.beginPath();
-      ctx.arc(lightX, lightY, 4, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px Inter';
-      ctx.fillText('☀️ ' + aiSpots.light.label, lightX + 16, lightY + 3);
-      
-      ctx.restore();
-    }
-
-    function drawHandles(cb) {
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1.5;
-      
-      const corners = [
-        { x: cb.x, y: cb.y },
-        { x: cb.x + cb.w, y: cb.y },
-        { x: cb.x, y: cb.y + cb.h },
-        { x: cb.x + cb.w, y: cb.y + cb.h }
-      ];
-      
-      corners.forEach(c => {
-        ctx.fillRect(c.x - HANDLE_SIZE/2, c.y - HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
-        ctx.strokeRect(c.x - HANDLE_SIZE/2, c.y - HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
-      });
-      
-      if (currentRatio === 'free') {
-        const edges = [
-          { x: cb.x + cb.w/2, y: cb.y },
-          { x: cb.x + cb.w/2, y: cb.y + cb.h },
-          { x: cb.x, y: cb.y + cb.h/2 },
-          { x: cb.x + cb.w, y: cb.y + cb.h/2 }
-        ];
-        
-        edges.forEach(e => {
-          ctx.fillRect(e.x - HANDLE_SIZE/2, e.y - HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
-          ctx.strokeRect(e.x - HANDLE_SIZE/2, e.y - HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
-        });
-      }
-    }
-
-    // Canvas Interactive Events
-    canvas.addEventListener('mousedown', (e) => {
-      if (isPreviewMode) return;
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      
-      const cb = toCanvasCoords(cropBox);
-      activeHandle = getClickedHandle(mx, my, cb);
-      
-      if (activeHandle) {
-        isResizing = true;
-        dragStart.x = mx;
-        dragStart.y = my;
-      } 
-      else if (mx > cb.x && mx < cb.x + cb.w && my > cb.y && my < cb.y + cb.h) {
-        isDragging = true;
-        dragStart.x = mx;
-        dragStart.y = my;
-      }
-    });
-
-    function getClickedHandle(mx, my, cb) {
-      const tolerance = HANDLE_SIZE + 4;
-      if (Math.abs(mx - cb.x) < tolerance && Math.abs(my - cb.y) < tolerance) return 'tl';
-      if (Math.abs(mx - (cb.x + cb.w)) < tolerance && Math.abs(my - cb.y) < tolerance) return 'tr';
-      if (Math.abs(mx - cb.x) < tolerance && Math.abs(my - (cb.y + cb.h)) < tolerance) return 'bl';
-      if (Math.abs(mx - (cb.x + cb.w)) < tolerance && Math.abs(my - (cb.y + cb.h)) < tolerance) return 'br';
-      
-      if (currentRatio === 'free') {
-        if (Math.abs(mx - (cb.x + cb.w/2)) < tolerance && Math.abs(my - cb.y) < tolerance) return 't';
-        if (Math.abs(mx - (cb.x + cb.w/2)) < tolerance && Math.abs(my - (cb.y + cb.h)) < tolerance) return 'b';
-        if (Math.abs(mx - cb.x) < tolerance && Math.abs(my - (cb.y + cb.h/2)) < tolerance) return 'l';
-        if (Math.abs(mx - (cb.x + cb.w)) < tolerance && Math.abs(my - (cb.y + cb.h/2)) < tolerance) return 'r';
-      }
-      return null;
-    }
-
-    canvas.addEventListener('mousemove', (e) => {
-      if (isPreviewMode) {
-        canvas.style.cursor = 'default';
-        return;
-      }
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      
-      if (!isDragging && !isResizing) {
-        const cb = toCanvasCoords(cropBox);
-        const handle = getClickedHandle(mx, my, cb);
-        if (handle) {
-          if (handle === 'tl' || handle === 'br') canvas.style.cursor = 'nwse-resize';
-          else if (handle === 'tr' || handle === 'bl') canvas.style.cursor = 'nesw-resize';
-          else if (handle === 't' || handle === 'b') canvas.style.cursor = 'ns-resize';
-          else if (handle === 'l' || handle === 'r') canvas.style.cursor = 'ew-resize';
-        } else if (mx > cb.x && mx < cb.x + cb.w && my > cb.y && my < cb.y + cb.h) {
-          canvas.style.cursor = 'move';
-        } else {
-          canvas.style.cursor = 'default';
-        }
-      }
-      
-      if (isDragging) {
-        const dx = (mx - dragStart.x) / canvas.width;
-        const dy = (my - dragStart.y) / canvas.height;
-        
-        cropBox.x += dx;
-        cropBox.y += dy;
-        boundCropBox();
-        
-        dragStart.x = mx;
-        dragStart.y = my;
-        draw();
-      } 
-      else if (isResizing) {
-        const dx = (mx - dragStart.x) / canvas.width;
-        const dy = (my - dragStart.y) / canvas.height;
-        
-        resizeCropBox(dx, dy);
-        
-        dragStart.x = mx;
-        dragStart.y = my;
-        draw();
-      }
-    });
-
-    window.addEventListener('mouseup', () => {
-      isDragging = false;
-      isResizing = false;
-      activeHandle = null;
-    });
-
-    function resizeCropBox(dx, dy) {
-      const cb = { ...cropBox };
-      const ratio = currentRatio === 'free' ? null : parseFloat(currentRatio);
-      const imgRatio = img.naturalWidth / img.naturalHeight;
-      
-      if (activeHandle === 'tl') {
-        cb.x += dx;
-        cb.w -= dx;
-        cb.y += dy;
-        cb.h -= dy;
-        if (ratio) {
-          const targetH = cb.w / ratio * imgRatio;
-          cb.y += (cb.h - targetH);
-          cb.h = targetH;
-        }
-      } 
-      else if (activeHandle === 'tr') {
-        cb.w += dx;
-        cb.y += dy;
-        cb.h -= dy;
-        if (ratio) {
-          const targetH = cb.w / ratio * imgRatio;
-          cb.y += (cb.h - targetH);
-          cb.h = targetH;
-        }
-      } 
-      else if (activeHandle === 'bl') {
-        cb.x += dx;
-        cb.w -= dx;
-        cb.h += dy;
-        if (ratio) {
-          cb.h = cb.w / ratio * imgRatio;
-        }
-      } 
-      else if (activeHandle === 'br') {
-        cb.w += dx;
-        cb.h += dy;
-        if (ratio) {
-          cb.h = cb.w / ratio * imgRatio;
-        }
-      }
-      else if (activeHandle === 't') {
-        cb.y += dy;
-        cb.h -= dy;
-      }
-      else if (activeHandle === 'b') {
-        cb.h += dy;
-      }
-      else if (activeHandle === 'l') {
-        cb.x += dx;
-        cb.w -= dx;
-      }
-      else if (activeHandle === 'r') {
-        cb.w += dx;
-      }
-
-      if (cb.w > 0.05 && cb.h > 0.05 && cb.x >= 0 && cb.y >= 0 && cb.x + cb.w <= 1.0 && cb.y + cb.h <= 1.0) {
-        cropBox = cb;
-      }
-    }
-
-    toggleHotspots.addEventListener('change', () => {
-      showHotspots = toggleHotspots.checked;
-      draw();
-    });
-
-    togglePreview.addEventListener('change', () => {
-      isPreviewMode = togglePreview.checked;
-      draw();
-    });
-
-    // Orientation State
-    let currentOrientation = 'landscape'; // 'landscape' or 'portrait'
-
-    const btnLandscape = document.getElementById('btnLandscape');
-    const btnPortrait = document.getElementById('btnPortrait');
-
-    function updateRatiosForOrientation() {
-      const isPortrait = (currentOrientation === 'portrait');
-      
-      btnLandscape.classList.toggle('active', !isPortrait);
-      btnPortrait.classList.toggle('active', isPortrait);
-      
-      const btn43 = document.getElementById('ratio43');
-      btn43.dataset.ratio = isPortrait ? '0.75' : '1.333';
-      btn43.querySelector('.ratio-label').innerText = isPortrait ? '3:4 (縦向き標準)' : '4:3 (標準画角)';
-      btn43.querySelector('.ratio-sub').innerText = isPortrait ? '縦向き肖像画・キャンバス' : '古典的な油絵キャンバス比';
-      
-      const btn32 = document.getElementById('ratio32');
-      btn32.dataset.ratio = isPortrait ? '0.667' : '1.5';
-      btn32.querySelector('.ratio-label').innerText = isPortrait ? '2:3 (縦向き写真)' : '3:2 (写真標準)';
-      btn32.querySelector('.ratio-sub').innerText = isPortrait ? '縦向き構図・ポートレート' : '絵画的風景画に最適';
-
-      const btn169 = document.getElementById('ratio169');
-      btn169.dataset.ratio = isPortrait ? '0.562' : '1.777';
-      btn169.querySelector('.ratio-label').innerText = isPortrait ? '9:16 (モバイル)' : '16:9 (シネマ)';
-      btn169.querySelector('.ratio-sub').innerText = isPortrait ? 'スマートフォン・縦長動画' : 'ダイナミックな映画風横長';
-
-      const btnGolden = document.getElementById('ratioGolden');
-      btnGolden.dataset.ratio = isPortrait ? '0.618' : '1.618';
-      btnGolden.querySelector('.ratio-label').innerText = isPortrait ? '1:1.618 (縦黄金比)' : '1.618 (黄金長方形)';
-      btnGolden.querySelector('.ratio-sub').innerText = isPortrait ? '美の調和・縦長キャンバス' : '最も調和する美の比率';
-
-      // Update the active ratio value and crop box
-      const activeBtn = document.querySelector('.btn-opt.active');
-      if (activeBtn) {
-        currentRatio = activeBtn.dataset.ratio;
-        applyAspectRatio();
-        draw();
-      }
-    }
-
-    btnLandscape.addEventListener('click', () => {
-      if (currentOrientation !== 'landscape') {
-        currentOrientation = 'landscape';
-        updateRatiosForOrientation();
-      }
-    });
-
-    btnPortrait.addEventListener('click', () => {
-      if (currentOrientation !== 'portrait') {
-        currentOrientation = 'portrait';
-        updateRatiosForOrientation();
-      }
-    });
-
-    // Ratio selectors
-    document.querySelectorAll('.btn-opt').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
-        const targetBtn = e.target.closest('.btn-opt');
-        targetBtn.classList.add('active');
-        
-        currentRatio = targetBtn.dataset.ratio;
-        applyAspectRatio();
-        draw();
-      });
-    });
-
-    // Guides selectors
-    document.querySelectorAll('.guide-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        document.querySelectorAll('.guide-item').forEach(i => i.classList.remove('active'));
-        const targetItem = e.target.closest('.guide-item');
-        targetItem.classList.add('active');
-        
-        activeGuide = targetItem.dataset.guide;
-        
-        if (activeGuide === 'golden_spiral') {
-          spiralControls.style.display = 'flex';
-        } else {
-          spiralControls.style.display = 'none';
-        }
-        
-        compositionInfo.innerHTML = guideDescriptions[activeGuide];
-        draw();
-      });
-    });
-
-    // Spiral directional control buttons
-    document.querySelectorAll('.btn-spiral-ctrl').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.btn-spiral-ctrl').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        spiralDirection = parseInt(e.target.dataset.dir);
-        draw();
-      });
-    });
-
-    // EXPORT HIGH RES CROP
-    btnCrop.addEventListener('click', () => {
-      if (!imgLoaded) return;
-      
-      const exportCanvas = document.createElement('canvas');
-      const exCtx = exportCanvas.getContext('2d');
-      
-      const realX = cropBox.x * img.naturalWidth;
-      const realY = cropBox.y * img.naturalHeight;
-      const realW = cropBox.w * img.naturalWidth;
-      const realH = cropBox.h * img.naturalHeight;
-      
-      exportCanvas.width = realW;
-      exportCanvas.height = realH;
-      
-      exCtx.drawImage(img, realX, realY, realW, realH, 0, 0, realW, realH);
-      
-      // Save
-      const link = document.createElement('a');
-      const dotIndex = originalFileName.lastIndexOf('.');
-      const baseName = dotIndex !== -1 ? originalFileName.substring(0, dotIndex) : originalFileName;
-      const ext = dotIndex !== -1 ? originalFileName.substring(dotIndex) : '.jpg';
-      
-      link.download = `${baseName}_cropped_composition${ext}`;
-      link.href = exportCanvas.toDataURL('image/jpeg', 0.95);
-      link.click();
-    });
-  </script>
+  <!-- Load script file -->
+  <script src="app.js" defer></script>
 </body>
 </html>
