@@ -514,6 +514,39 @@
       color: #fff;
     }
 
+    .orientation-toggle {
+      display: flex;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.2rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 0.4rem;
+    }
+
+    .btn-orientation {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.4rem;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .btn-orientation:hover {
+      color: #fff;
+    }
+
+    .btn-orientation.active {
+      background: rgba(139, 92, 246, 0.15);
+      color: #fff;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
     .composition-info {
       font-size: 0.74rem;
       color: var(--text-muted);
@@ -711,30 +744,35 @@
       <!-- Aspect Ratios selection -->
       <div class="panel-section">
         <h3>✂️ アスペクト比 (Aspect Ratios)</h3>
+        <!-- Orientation Toggle -->
+        <div class="orientation-toggle">
+          <button class="btn-orientation active" id="btnLandscape">横向き (Landscape)</button>
+          <button class="btn-orientation" id="btnPortrait">縦向き (Portrait)</button>
+        </div>
         <div class="options-grid">
-          <button class="btn-opt active" data-ratio="free">
+          <button class="btn-opt active" data-ratio="free" id="ratioFree">
             <span>自由 (Free)</span>
             <span class="sub">任意のサイズ</span>
           </button>
-          <button class="btn-opt" data-ratio="1">
+          <button class="btn-opt" data-ratio="1" id="ratio1">
             <span>1:1 (正方形)</span>
             <span class="sub">静寂・古典的ポートレート</span>
           </button>
-          <button class="btn-opt" data-ratio="1.333">
-            <span>4:3 (標準画角)</span>
-            <span class="sub">古典的な油絵キャンバス比</span>
+          <button class="btn-opt" data-ratio="1.333" id="ratio43">
+            <span class="ratio-label">4:3 (標準画角)</span>
+            <span class="ratio-sub">古典的な油絵キャンバス比</span>
           </button>
-          <button class="btn-opt" data-ratio="1.5">
-            <span>3:2 (写真標準)</span>
-            <span class="sub">絵画的風景画に最適</span>
+          <button class="btn-opt" data-ratio="1.5" id="ratio32">
+            <span class="ratio-label">3:2 (写真標準)</span>
+            <span class="ratio-sub">絵画的風景画に最適</span>
           </button>
-          <button class="btn-opt" data-ratio="1.777">
-            <span>16:9 (シネマ)</span>
-            <span class="sub">ダイナミックな映画風横長</span>
+          <button class="btn-opt" data-ratio="1.777" id="ratio169">
+            <span class="ratio-label">16:9 (シネマ)</span>
+            <span class="ratio-sub">ダイナミックな映画風横長</span>
           </button>
-          <button class="btn-opt" data-ratio="1.618">
-            <span>1.618 (黄金長方形)</span>
-            <span class="sub">最も調和する美の比率</span>
+          <button class="btn-opt" data-ratio="1.618" id="ratioGolden">
+            <span class="ratio-label">1.618 (黄金長方形)</span>
+            <span class="ratio-sub">最も調和する美の比率</span>
           </button>
         </div>
       </div>
@@ -1583,6 +1621,61 @@
     toggleHotspots.addEventListener('change', () => {
       showHotspots = toggleHotspots.checked;
       draw();
+    });
+
+    // Orientation State
+    let currentOrientation = 'landscape'; // 'landscape' or 'portrait'
+
+    const btnLandscape = document.getElementById('btnLandscape');
+    const btnPortrait = document.getElementById('btnPortrait');
+
+    function updateRatiosForOrientation() {
+      const isPortrait = (currentOrientation === 'portrait');
+      
+      btnLandscape.classList.toggle('active', !isPortrait);
+      btnPortrait.classList.toggle('active', isPortrait);
+      
+      const btn43 = document.getElementById('ratio43');
+      btn43.dataset.ratio = isPortrait ? '0.75' : '1.333';
+      btn43.querySelector('.ratio-label').innerText = isPortrait ? '3:4 (縦向き標準)' : '4:3 (標準画角)';
+      btn43.querySelector('.ratio-sub').innerText = isPortrait ? '縦向き肖像画・キャンバス' : '古典的な油絵キャンバス比';
+      
+      const btn32 = document.getElementById('ratio32');
+      btn32.dataset.ratio = isPortrait ? '0.667' : '1.5';
+      btn32.querySelector('.ratio-label').innerText = isPortrait ? '2:3 (縦向き写真)' : '3:2 (写真標準)';
+      btn32.querySelector('.ratio-sub').innerText = isPortrait ? '縦向き構図・ポートレート' : '絵画的風景画に最適';
+
+      const btn169 = document.getElementById('ratio169');
+      btn169.dataset.ratio = isPortrait ? '0.562' : '1.777';
+      btn169.querySelector('.ratio-label').innerText = isPortrait ? '9:16 (モバイル)' : '16:9 (シネマ)';
+      btn169.querySelector('.ratio-sub').innerText = isPortrait ? 'スマートフォン・縦長動画' : 'ダイナミックな映画風横長';
+
+      const btnGolden = document.getElementById('ratioGolden');
+      btnGolden.dataset.ratio = isPortrait ? '0.618' : '1.618';
+      btnGolden.querySelector('.ratio-label').innerText = isPortrait ? '1:1.618 (縦黄金比)' : '1.618 (黄金長方形)';
+      btnGolden.querySelector('.ratio-sub').innerText = isPortrait ? '美の調和・縦長キャンバス' : '最も調和する美の比率';
+
+      // Update the active ratio value and crop box
+      const activeBtn = document.querySelector('.btn-opt.active');
+      if (activeBtn) {
+        currentRatio = activeBtn.dataset.ratio;
+        applyAspectRatio();
+        draw();
+      }
+    }
+
+    btnLandscape.addEventListener('click', () => {
+      if (currentOrientation !== 'landscape') {
+        currentOrientation = 'landscape';
+        updateRatiosForOrientation();
+      }
+    });
+
+    btnPortrait.addEventListener('click', () => {
+      if (currentOrientation !== 'portrait') {
+        currentOrientation = 'portrait';
+        updateRatiosForOrientation();
+      }
     });
 
     // Ratio selectors
