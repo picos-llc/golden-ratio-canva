@@ -1222,7 +1222,8 @@
 
     function drawSpiralCurve(x, y, w, h, direction) {
       ctx.save();
-      ctx.translate(x + w/2, y + h/2);
+      // Apply translation and scaling to flip/rotate the spiral
+      ctx.translate(x + w / 2, y + h / 2);
       if (direction === 1) {
         ctx.scale(-1, 1);
       } else if (direction === 2) {
@@ -1230,52 +1231,107 @@
       } else if (direction === 3) {
         ctx.scale(1, -1);
       }
-      ctx.translate(-w/2, -h/2);
+      ctx.translate(-w / 2, -h / 2);
 
-      // Fibonacci grid Lines
+      // We partition the bounding box of size w x h into Fibonacci squares
+      // sequence: Left, Top, Right, Bottom, Left, Top, Right, Bottom...
+      let x1 = 0, x2 = w, y1 = 0, y2 = h;
+      let squares = [];
+      for (let i = 0; i < 8; i++) {
+        let s;
+        const mod = i % 4;
+        if (mod === 0) {
+          s = y2 - y1;
+          squares.push({
+            cx: x1 + s,
+            cy: y1 + s,
+            r: s,
+            startAngle: Math.PI,
+            endAngle: 1.5 * Math.PI
+          });
+          x1 += s;
+        } else if (mod === 1) {
+          s = x2 - x1;
+          squares.push({
+            cx: x1,
+            cy: y1 + s,
+            r: s,
+            startAngle: 1.5 * Math.PI,
+            endAngle: 2 * Math.PI
+          });
+          y1 += s;
+        } else if (mod === 2) {
+          s = y2 - y1;
+          squares.push({
+            cx: x2 - s,
+            cy: y1,
+            r: s,
+            startAngle: 0,
+            endAngle: 0.5 * Math.PI
+          });
+          x2 -= s;
+        } else if (mod === 3) {
+          s = x2 - x1;
+          squares.push({
+            cx: x1 + s,
+            cy: y2 - s,
+            r: s,
+            startAngle: 0.5 * Math.PI,
+            endAngle: Math.PI
+          });
+          y2 -= s;
+        }
+      }
+
+      // 1. Draw Fibonacci partition lines (grid)
       ctx.beginPath();
       ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
       ctx.lineWidth = 1;
       
-      let lx = 0;
-      let ly = 0;
-      let lw = w;
-      let lh = h;
-      
-      for (let i = 0; i < 6; i++) {
-        if (i % 2 === 0) {
-          const lineX = lx + lw * 0.618;
-          ctx.moveTo(lineX, ly);
-          ctx.lineTo(lineX, ly + lh);
-          lw = lw * 0.618;
-          lx = lineX;
-        } else {
-          const lineY = ly + lh * 0.618;
-          ctx.moveTo(lx - lw/0.618 + lw, lineY);
-          ctx.lineTo(lx + lw, lineY);
-          lh = lh * 0.618;
-          ly = lineY;
+      // Let's trace the boundary lines of the squares
+      let gx1 = 0, gx2 = w, gy1 = 0, gy2 = h;
+      for (let i = 0; i < 7; i++) {
+        const mod = i % 4;
+        if (mod === 0) {
+          let s = gy2 - gy1;
+          ctx.moveTo(gx1 + s, gy1);
+          ctx.lineTo(gx1 + s, gy2);
+          gx1 += s;
+        } else if (mod === 1) {
+          let s = gx2 - gx1;
+          ctx.moveTo(gx1, gy1 + s);
+          ctx.lineTo(gx2, gy1 + s);
+          gy1 += s;
+        } else if (mod === 2) {
+          let s = gy2 - gy1;
+          ctx.moveTo(gx2 - s, gy1);
+          ctx.lineTo(gx2 - s, gy2);
+          gx2 -= s;
+        } else if (mod === 3) {
+          let s = gx2 - gx1;
+          ctx.moveTo(gx1, gy2 - s);
+          ctx.lineTo(gx2, gy2 - s);
+          gy2 -= s;
         }
       }
       ctx.stroke();
-      
-      // Draw spiral arcs
+
+      // 2. Draw continuous golden spiral curve
       ctx.beginPath();
       ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
       ctx.lineWidth = 1.8;
-      
-      const r1 = w * 0.618;
-      ctx.arc(r1, r1, r1, -Math.PI/2, Math.PI, true);
-      
-      const r2 = w * 0.382;
-      ctx.arc(r1, r1 - r2, r2, Math.PI, Math.PI/2, true);
-      
-      const r3 = w * 0.236;
-      ctx.arc(r1 - r3, r1 - r2, r3, Math.PI/2, 0, true);
-      
-      const r4 = w * 0.146;
-      ctx.arc(r1 - r3, r1 - r2 + r4, r4, 0, -Math.PI/2, true);
-      
+
+      // Start at the first point: bottom-left of the first square
+      const first = squares[0];
+      const startX = first.cx + first.r * Math.cos(first.startAngle);
+      const startY = first.cy + first.r * Math.sin(first.startAngle);
+      ctx.moveTo(startX, startY);
+
+      // Sequentially add each arc to create a single continuous path
+      squares.forEach(sq => {
+        ctx.arc(sq.cx, sq.cy, sq.r, sq.startAngle, sq.endAngle, false);
+      });
+
       ctx.stroke();
       ctx.restore();
     }
