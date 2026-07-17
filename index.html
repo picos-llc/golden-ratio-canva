@@ -741,6 +741,18 @@
         </div>
       </div>
 
+      <!-- Preview Mode -->
+      <div class="panel-section">
+        <h3>👁️ トリミングプレビュー (Preview)</h3>
+        <div class="ai-hotspot-toggle">
+          <span>プレビューモード (ガイド非表示/背景黒)</span>
+          <label class="switch">
+            <input type="checkbox" id="togglePreview">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
       <!-- Aspect Ratios selection -->
       <div class="panel-section">
         <h3>✂️ アスペクト比 (Aspect Ratios)</h3>
@@ -818,6 +830,7 @@
     const canvas = document.getElementById('cropCanvas');
     const ctx = canvas.getContext('2d');
     const toggleHotspots = document.getElementById('toggleHotspots');
+    const togglePreview = document.getElementById('togglePreview');
     const compositionInfo = document.getElementById('compositionInfo');
     const btnCrop = document.getElementById('btnCrop');
     const btnReset = document.getElementById('btnReset');
@@ -836,6 +849,7 @@
     let activeGuide = 'thirds'; // 'thirds', 'golden_spiral', ...
     let spiralDirection = 0; // 0: TL, 1: TR, 2: BR, 3: BL
     let showHotspots = true;
+    let isPreviewMode = false;
 
     // Interaction variables
     let isDragging = false;
@@ -1157,27 +1171,29 @@
       const cb = toCanvasCoords(cropBox);
       
       // Shadow mask outside crop box
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillStyle = isPreviewMode ? 'rgba(0, 0, 0, 1.0)' : 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(0, 0, canvas.width, cb.y); // top
       ctx.fillRect(0, cb.y + cb.h, canvas.width, canvas.height - (cb.y + cb.h)); // bottom
       ctx.fillRect(0, cb.y, cb.x, cb.h); // left
       ctx.fillRect(cb.x + cb.w, cb.y, canvas.width - (cb.x + cb.w), cb.h); // right
       
-      // Crop border
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.8;
-      ctx.strokeRect(cb.x, cb.y, cb.w, cb.h);
-      
-      // Render composition overlays
-      drawGuide(cb);
+      // Crop border, guides, hotspots, and handles (only when preview mode is OFF)
+      if (!isPreviewMode) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.strokeRect(cb.x, cb.y, cb.w, cb.h);
+        
+        // Render composition overlays
+        drawGuide(cb);
 
-      // AI hot spots
-      if (showHotspots) {
-        drawAISpots();
+        // AI hot spots
+        if (showHotspots) {
+          drawAISpots();
+        }
+
+        // Drag handles
+        drawHandles(cb);
       }
-
-      // Drag handles
-      drawHandles(cb);
     }
 
     function drawGuide(cb) {
@@ -1472,6 +1488,7 @@
 
     // Canvas Interactive Events
     canvas.addEventListener('mousedown', (e) => {
+      if (isPreviewMode) return;
       const rect = canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
@@ -1508,6 +1525,10 @@
     }
 
     canvas.addEventListener('mousemove', (e) => {
+      if (isPreviewMode) {
+        canvas.style.cursor = 'default';
+        return;
+      }
       const rect = canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
@@ -1620,6 +1641,11 @@
 
     toggleHotspots.addEventListener('change', () => {
       showHotspots = toggleHotspots.checked;
+      draw();
+    });
+
+    togglePreview.addEventListener('change', () => {
+      isPreviewMode = togglePreview.checked;
       draw();
     });
 
