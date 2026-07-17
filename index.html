@@ -51,11 +51,7 @@
         <input type="file" id="fileInput" accept="image/*">
       </div>
 
-      <!-- 2. Processing State -->
-      <div class="analyzer-loading absolute inset-0 bg-slate-950/85 z-50 flex flex-col items-center justify-center gap-4 backdrop-blur-md hidden" id="analyzerLoading">
-        <div class="w-12 h-12 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
-        <p class="font-semibold text-white text-lg">画像を解析中（輝度検出）...</p>
-      </div>
+
 
       <!-- 3. Editor state -->
       <div class="editor-zone w-full h-full flex flex-col items-center justify-center relative hidden" id="editorZone">
@@ -68,31 +64,6 @@
     <!-- Right Controls Panel -->
     <div class="control-panel w-[400px] bg-slate-900/95 border-l border-white/5 p-6 overflow-y-auto hidden flex-col gap-5 shadow-2xl z-5" id="controlPanel">
       
-      <!-- AI analysis of the painting composition -->
-      <div class="panel-section bg-slate-900/50 border border-violet-500/20 bg-gradient-to-br from-slate-900/80 to-purple-950/20 p-5 rounded-2xl flex flex-col gap-3 shadow-inner" id="aiAnalysisPanel">
-        <h3 class="text-sm font-semibold text-slate-100 flex items-center border-b border-white/5 pb-2">✨ AI 構図分析解析 <span class="bg-gradient-to-r from-pink-500 to-violet-500 text-white text-[10px] font-bold py-0.5 px-2 rounded-full uppercase tracking-wider ml-auto">LOCAL JS</span></h3>
-        <div class="ai-report text-xs leading-relaxed text-slate-400 flex flex-col gap-3">
-          <p>画像のピクセル構造を解析し、絵画構図における主要なフォーカス（焦点）を抽出しました：</p>
-          
-          <div class="ai-point-item flex gap-3 items-start bg-white/2 p-3 rounded-lg border-l-3 border-golden">
-            <div>
-              <div class="ai-point-title font-semibold text-slate-200 text-xs">☀️ 光明の焦点 (最高輝度エリア)</div>
-              <div class="ai-point-desc text-[11px] mt-1" id="aiLightDesc">
-                位置: <strong>( - %, - %)</strong><br>画面の中で最も光が集まるポイントです。古典絵画の「キアロスクーロ（明暗法）」的アプローチとして、この光点と周囲の暗部とのバランスを意識したトリミングが有効です。
-              </div>
-            </div>
-          </div>
-          
-          <div class="ai-hotspot-toggle flex items-center justify-between mt-1 text-xs">
-            <span>画面上に分析スポットを表示</span>
-            <label class="relative inline-block w-8 h-4.5">
-              <input type="checkbox" id="toggleHotspots" class="opacity-0 w-0 h-0" checked>
-              <span class="switch-slider absolute cursor-pointer inset-0"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
       <!-- Preview Mode -->
       <div class="panel-section bg-slate-900/50 border border-white/5 p-5 rounded-2xl flex flex-col gap-3 shadow-inner">
         <h3 class="text-sm font-semibold text-slate-100 flex items-center border-b border-white/5 pb-2">👁️ トリミングプレビュー (Preview)</h3>
@@ -102,6 +73,21 @@
             <input type="checkbox" id="togglePreview" class="opacity-0 w-0 h-0">
             <span class="switch-slider absolute cursor-pointer inset-0"></span>
           </label>
+        </div>
+      </div>
+
+      <!-- Color Adjustments -->
+      <div class="panel-section bg-slate-900/50 border border-white/5 p-5 rounded-2xl flex flex-col gap-3 shadow-inner">
+        <h3 class="text-sm font-semibold text-slate-100 flex items-center border-b border-white/5 pb-2">🎨 色調調整 (Adjustments)</h3>
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-center text-xs text-slate-300">
+            <span>コントラスト</span>
+            <span id="contrastVal" class="font-semibold text-violet-400">100%</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="range" id="inputContrast" min="50" max="200" value="100" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-500">
+            <button id="btnResetContrast" class="text-[10px] bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded text-slate-300 transition cursor-pointer select-none">リセット</button>
+          </div>
         </div>
       </div>
 
@@ -149,7 +135,7 @@
 
         <div class="composition-info text-[11px] text-slate-400 bg-white/1 border border-dashed border-white/8 p-3 rounded-lg mt-1" id="compositionInfo">
           <strong>三分割法 (Rule of Thirds)</strong>
-          画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。AIが検出した「光明の焦点」や主要な主題を交点付近に置くのがお勧めです。
+          画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。主要な被写体や視線を集める要素を交点付近に置くのがお勧めです。
         </div>
       </div>
 

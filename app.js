@@ -1,11 +1,6 @@
-// Analysis focal points computed in JS client-side
-let aiSpots = {
-  light: { x_pct: 50, y_pct: 50, label: "光明の焦点" }
-};
-
 // Guide description texts
 const guideDescriptions = {
-  thirds: "<strong>三分割法 (Rule of Thirds)</strong>画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。AIが検出した「光明の焦点」や主要な主題を交点付近に置くのがお勧めです。",
+  thirds: "<strong>三分割法 (Rule of Thirds)</strong>画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。主要な被写体や視線を集める要素を交点付近に置くのがお勧めです。",
   golden_spiral: "<strong>黄金螺旋 (Golden Spiral)</strong>黄金比に基づいて描かれる対数螺旋。螺旋の収束点（中心）に視線を誘導するように主題を配置します。螺旋の向きを切り替えて、主要な被写体とマッチさせてください。",
   dynamic_symmetry: "<strong>動的対称性 (Dynamic Symmetry)</strong>対角線とそこから対角に下ろした垂線による複雑なグリッド。西洋美術や古典絵画（ルネサンス期など）で非常によく使われ、視線の自然な流れや画面の動き（ダイナミズム）を設計できます。",
   golden_triangle: "<strong>黄金三角形 (Golden Triangles)</strong>対角線とその他の角から引いた垂線で分割される三角形。動きのある被写体や対角線の方向性を強調し、緊張感とバランスを両立させます。"
@@ -14,7 +9,6 @@ const guideDescriptions = {
 // DOM Elements
 const logo = document.getElementById('logo');
 const uploadZone = document.getElementById('uploadZone');
-const analyzerLoading = document.getElementById('analyzerLoading');
 const editorZone = document.getElementById('editorZone');
 const controlPanel = document.getElementById('controlPanel');
 const fileInfoPanel = document.getElementById('fileInfoPanel');
@@ -23,13 +17,14 @@ const btnSelectFile = document.getElementById('btnSelectFile');
 const fileInput = document.getElementById('fileInput');
 const canvas = document.getElementById('cropCanvas');
 const ctx = canvas.getContext('2d');
-const toggleHotspots = document.getElementById('toggleHotspots');
 const togglePreview = document.getElementById('togglePreview');
 const compositionInfo = document.getElementById('compositionInfo');
 const btnCrop = document.getElementById('btnCrop');
 const btnReset = document.getElementById('btnReset');
 const spiralControls = document.getElementById('spiralControls');
-const aiLightDesc = document.getElementById('aiLightDesc');
+const inputContrast = document.getElementById('inputContrast');
+const contrastVal = document.getElementById('contrastVal');
+const btnResetContrast = document.getElementById('btnResetContrast');
 
 // State Variables
 let img = new Image();
@@ -41,8 +36,8 @@ let cropBox = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
 let currentRatio = 'free'; // 'free' or float value
 let activeGuide = 'thirds'; // 'thirds', 'golden_spiral', ...
 let spiralDirection = 0; // 0: TL, 1: TR, 2: BR, 3: BL
-let showHotspots = true;
 let isPreviewMode = false;
+let contrastValue = 100;
 
 // Interaction variables
 let isDragging = false;
@@ -98,9 +93,8 @@ function handleImageFile(file) {
   }
   originalFileName = file.name;
   
-  // Show loading
+  // Hide upload zone
   uploadZone.style.display = 'none';
-  analyzerLoading.style.display = 'flex';
   
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -116,97 +110,18 @@ img.onload = () => {
   fileDetails.innerText = `画質: ${img.naturalWidth} x ${img.naturalHeight} | ${originalFileName}`;
   fileInfoPanel.style.display = 'block';
 
-  // Perform JS-based client side analysis
-  analyzeImageComposition();
-
   // Setup editor UI
   initCropBox();
   resizeCanvas();
   
-  // Hide loading, show editor
-  analyzerLoading.style.display = 'none';
+  // Show editor
   editorZone.style.display = 'flex';
   controlPanel.style.display = 'flex';
   
   draw();
 };
 
-// CLIENT SIDE LIGHTNESS ANALYSIS (COMPUTATIONAL COGNITION)
-function analyzeImageComposition() {
-  // Create a small offscreen canvas to perform fast pixel analysis
-  const analysisCanvas = document.createElement('canvas');
-  const analysisCtx = analysisCanvas.getContext('2d');
-  
-  // Downscale to max 300px width/height for immediate analysis
-  const maxDim = 300;
-  let w = img.naturalWidth;
-  let h = img.naturalHeight;
-  if (w > maxDim || h > maxDim) {
-    if (w > h) {
-      h = Math.round((h * maxDim) / w);
-      w = maxDim;
-    } else {
-      w = Math.round((w * maxDim) / h);
-      h = maxDim;
-    }
-  }
-  
-  analysisCanvas.width = w;
-  analysisCanvas.height = h;
-  analysisCtx.drawImage(img, 0, 0, w, h);
-  
-  const imgData = analysisCtx.getImageData(0, 0, w, h);
-  const data = imgData.data;
-  
-  // Calculate 12x12 grid averages for brightness
-  const gridRows = 12;
-  const gridCols = 12;
-  const colW = w / gridCols;
-  const rowH = h / gridRows;
-  
-  let maxBrightness = -1;
-  let maxBrightCell = { r: 6, c: 6 };
-  
-  for (let r = 0; r < gridRows; r++) {
-    for (let c = 0; c < gridCols; c++) {
-      const rStart = Math.floor(r * rowH);
-      const rEnd = Math.min(h, Math.floor((r + 1) * rowH));
-      const cStart = Math.floor(c * colW);
-      const cEnd = Math.min(w, Math.floor((c + 1) * colW));
-      
-      let brightSum = 0;
-      let count = 0;
-      
-      for (let y = rStart; y < rEnd; y++) {
-        for (let x = cStart; x < cEnd; x++) {
-          const idx = (y * w + x) * 4;
-          const rVal = data[idx];
-          const gVal = data[idx + 1];
-          const bVal = data[idx + 2];
-          const Y = 0.299 * rVal + 0.587 * gVal + 0.114 * bVal;
-          brightSum += Y;
-          count++;
-        }
-      }
-      
-      const avgBright = brightSum / (count || 1);
-      if (avgBright > maxBrightness) {
-        maxBrightness = avgBright;
-        maxBrightCell = { r, c };
-      }
-    }
-  }
-  
-  // Convert grid cell to normalized coordinates
-  const lightX = ((maxBrightCell.c + 0.5) * colW) / w * 100;
-  const lightY = ((maxBrightCell.r + 0.5) * rowH) / h * 100;
-  
-  aiSpots.light.x_pct = Math.round(lightX * 10) / 10;
-  aiSpots.light.y_pct = Math.round(lightY * 10) / 10;
-  
-  // Update UI descriptions
-  aiLightDesc.innerHTML = `位置: <strong>(${aiSpots.light.x_pct}%, ${aiSpots.light.y_pct}%)</strong><br>最も明るい光源や反射面の位置です。陰影（キアロスクーロ）のバランスや、見る人の視線が最初に移るポイントとして構図に取り入れてみましょう。`;
-}
+// (AI Analysis function removed)
 
 function resetUpload() {
   imgLoaded = false;
@@ -312,7 +227,12 @@ function draw() {
   if (!imgLoaded) return;
   
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Apply contrast filter to image draw only
+  ctx.save();
+  ctx.filter = `contrast(${contrastValue}%)`;
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.restore();
   
   const cb = toCanvasCoords(cropBox);
   
@@ -323,7 +243,7 @@ function draw() {
   ctx.fillRect(0, cb.y, cb.x, cb.h); // left
   ctx.fillRect(cb.x + cb.w, cb.y, canvas.width - (cb.x + cb.w), cb.h); // right
   
-  // Crop border, guides, hotspots, and handles (only when preview mode is OFF)
+  // Crop border, guides, and handles (only when preview mode is OFF)
   if (!isPreviewMode) {
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1.8;
@@ -331,11 +251,6 @@ function draw() {
     
     // Render composition overlays
     drawGuide(cb);
-
-    // AI hot spots
-    if (showHotspots) {
-      drawAISpots();
-    }
 
     // Drag handles
     drawHandles(cb);
@@ -554,30 +469,7 @@ function drawSpiralCurve(x, y, w, h, direction) {
   ctx.restore();
 }
 
-function drawAISpots() {
-  ctx.save();
-  
-  // Light Focus
-  const lightX = (aiSpots.light.x_pct / 100) * canvas.width;
-  const lightY = (aiSpots.light.y_pct / 100) * canvas.height;
-  
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(lightX, lightY, 14, 0, Math.PI * 2);
-  ctx.stroke();
-  
-  ctx.fillStyle = 'rgba(245, 158, 11, 0.45)';
-  ctx.beginPath();
-  ctx.arc(lightX, lightY, 4, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 10px Inter';
-  ctx.fillText('☀️ ' + aiSpots.light.label, lightX + 16, lightY + 3);
-  
-  ctx.restore();
-}
+
 
 function drawHandles(cb) {
   ctx.fillStyle = '#ffffff';
@@ -764,13 +656,21 @@ function resizeCropBox(dx, dy) {
   }
 }
 
-toggleHotspots.addEventListener('change', () => {
-  showHotspots = toggleHotspots.checked;
+togglePreview.addEventListener('change', () => {
+  isPreviewMode = togglePreview.checked;
   draw();
 });
 
-togglePreview.addEventListener('change', () => {
-  isPreviewMode = togglePreview.checked;
+inputContrast.addEventListener('input', (e) => {
+  contrastValue = parseInt(e.target.value);
+  contrastVal.innerText = `${contrastValue}%`;
+  draw();
+});
+
+btnResetContrast.addEventListener('click', () => {
+  contrastValue = 100;
+  inputContrast.value = 100;
+  contrastVal.innerText = '100%';
   draw();
 });
 
@@ -887,7 +787,10 @@ btnCrop.addEventListener('click', () => {
   exportCanvas.width = realW;
   exportCanvas.height = realH;
   
+  // Apply contrast filter to exported image crop
+  exCtx.filter = `contrast(${contrastValue}%)`;
   exCtx.drawImage(img, realX, realY, realW, realH, 0, 0, realW, realH);
+  exCtx.filter = 'none';
   
   // Save
   const link = document.createElement('a');
