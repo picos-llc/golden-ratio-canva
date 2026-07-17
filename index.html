@@ -1233,10 +1233,28 @@
       }
       ctx.translate(-w / 2, -h / 2);
 
-      // We partition the bounding box of size w x h into Fibonacci squares
-      // sequence: Left, Top, Right, Bottom, Left, Top, Right, Bottom...
-      let x1 = 0, x2 = w, y1 = 0, y2 = h;
+      const phi = 1.61803398875;
+      
+      // Determine the size and offset of the virtual golden rectangle that fits inside [0, 0, w, h]
+      let w_gold, h_gold;
+      let x_off = 0, y_off = 0;
+      
+      if (w / h >= phi) {
+        // Wide crop box: fit by height
+        h_gold = h;
+        w_gold = h * phi;
+        x_off = (w - w_gold) / 2;
+      } else {
+        // Narrow/Tall crop box: fit by width
+        w_gold = w;
+        h_gold = w / phi;
+        y_off = (h - h_gold) / 2;
+      }
+
+      // We partition the virtual golden rectangle [x_off, y_off, w_gold, h_gold]
+      let x1 = x_off, x2 = x_off + w_gold, y1 = y_off, y2 = y_off + h_gold;
       let squares = [];
+      
       for (let i = 0; i < 8; i++) {
         let s;
         const mod = i % 4;
@@ -1289,7 +1307,7 @@
       ctx.lineWidth = 1;
       
       // Let's trace the boundary lines of the squares
-      let gx1 = 0, gx2 = w, gy1 = 0, gy2 = h;
+      let gx1 = x_off, gx2 = x_off + w_gold, gy1 = y_off, gy2 = y_off + h_gold;
       for (let i = 0; i < 7; i++) {
         const mod = i % 4;
         if (mod === 0) {
