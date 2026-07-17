@@ -665,14 +665,7 @@
         <div class="ai-report">
           <p>画像のピクセル構造を解析し、絵画構図における主要なフォーカス（焦点）を抽出しました：</p>
           
-          <div class="ai-point-item">
-            <div>
-              <div class="ai-point-title">🔍 詳細の焦点 (エッジ密度最高点)</div>
-              <div class="ai-point-desc" id="aiDetailDesc">
-                位置: <strong>( - %, - %)</strong><br>絵画のディテールやテクスチャが最も密集している場所です。ここを主要な主題の焦点（主役）として構図を組むことをお勧めします。
-              </div>
-            </div>
-          </div>
+
 
           <div class="ai-point-item light">
             <div>
@@ -805,13 +798,12 @@
   <script>
     // Analysis focal points computed in JS client-side
     let aiSpots = {
-      detail: { x_pct: 50, y_pct: 50, label: "詳細の焦点" },
       light: { x_pct: 50, y_pct: 50, label: "光明の焦点" }
     };
 
     // Guide description texts
     const guideDescriptions = {
-      thirds: "<strong>三分割法 (Rule of Thirds)</strong>画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。AIが検出した「詳細の焦点」を交点付近に置くのがお勧めです。",
+      thirds: "<strong>三分割法 (Rule of Thirds)</strong>画面を縦横3等分し、その交点に主題を配置する古典的で安定性の高いレイアウト。AIが検出した「光明の焦点」や主要な主題を交点付近に置くのがお勧めです。",
       golden_spiral: "<strong>黄金螺旋 (Golden Spiral)</strong>黄金比に基づいて描かれる対数螺旋。螺旋の収束点（中心）に視線を誘導するように主題を配置します。螺旋の向きを切り替えて、主要な被写体とマッチさせてください。",
       dynamic_symmetry: "<strong>動的対称性 (Dynamic Symmetry)</strong>対角線とそこから対角に下ろした垂線による複雑なグリッド。西洋美術や古典絵画（ルネサンス期など）で非常によく使われ、視線の自然な流れや画面の動き（ダイナミズム）を設計できます。",
       golden_triangle: "<strong>黄金三角形 (Golden Triangles)</strong>対角線とその他の角から引いた垂線で分割される三角形。動きのある被写体や対角線の方向性を強調し、緊張感とバランスを両立させます。"
@@ -835,7 +827,6 @@
     const btnCrop = document.getElementById('btnCrop');
     const btnReset = document.getElementById('btnReset');
     const spiralControls = document.getElementById('spiralControls');
-    const aiDetailDesc = document.getElementById('aiDetailDesc');
     const aiLightDesc = document.getElementById('aiLightDesc');
 
     // State Variables
@@ -938,7 +929,7 @@
       draw();
     };
 
-    // CLIENT SIDE SOBEL & BRIGHTNESS ANALYSIS (COMPUTATIONAL COGNITION)
+    // CLIENT SIDE LIGHTNESS ANALYSIS (COMPUTATIONAL COGNITION)
     function analyzeImageComposition() {
       // Create a small offscreen canvas to perform fast pixel analysis
       const analysisCanvas = document.createElement('canvas');
@@ -965,47 +956,12 @@
       const imgData = analysisCtx.getImageData(0, 0, w, h);
       const data = imgData.data;
       
-      // Create a 2D grayscale representation
-      const gray = new Uint8Array(w * h);
-      for (let i = 0; i < data.length; i += 4) {
-        // Standard luminance coefficients
-        gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      }
-      
-      // 1. Edge magnitude using Sobel Kernels
-      // Gx = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
-      // Gy = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
-      const edges = new Float32Array(w * h);
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          const idx = y * w + x;
-          
-          const val00 = gray[(y - 1) * w + (x - 1)];
-          const val01 = gray[(y - 1) * w + x];
-          const val02 = gray[(y - 1) * w + (x + 1)];
-          
-          const val10 = gray[y * w + (x - 1)];
-          const val12 = gray[y * w + (x + 1)];
-          
-          const val20 = gray[(y + 1) * w + (x - 1)];
-          const val21 = gray[(y + 1) * w + x];
-          const val22 = gray[(y + 1) * w + (x + 1)];
-          
-          const gx = -val00 + val02 - 2 * val10 + 2 * val12 - val20 + val22;
-          const gy = -val00 - 2 * val01 - val02 + val20 + 2 * val21 + val22;
-          
-          edges[idx] = Math.sqrt(gx * gx + gy * gy);
-        }
-      }
-      
-      // Calculate 12x12 grid averages for edges and brightness
+      // Calculate 12x12 grid averages for brightness
       const gridRows = 12;
       const gridCols = 12;
       const colW = w / gridCols;
       const rowH = h / gridRows;
       
-      let maxEdgeDensity = -1;
-      let maxEdgeCell = { r: 6, c: 6 };
       let maxBrightness = -1;
       let maxBrightCell = { r: 6, c: 6 };
       
@@ -1016,27 +972,22 @@
           const cStart = Math.floor(c * colW);
           const cEnd = Math.min(w, Math.floor((c + 1) * colW));
           
-          let edgeSum = 0;
           let brightSum = 0;
           let count = 0;
           
           for (let y = rStart; y < rEnd; y++) {
             for (let x = cStart; x < cEnd; x++) {
-              const idx = y * w + x;
-              edgeSum += edges[idx];
-              brightSum += gray[idx];
+              const idx = (y * w + x) * 4;
+              const rVal = data[idx];
+              const gVal = data[idx + 1];
+              const bVal = data[idx + 2];
+              const Y = 0.299 * rVal + 0.587 * gVal + 0.114 * bVal;
+              brightSum += Y;
               count++;
             }
           }
           
-          const avgEdge = edgeSum / (count || 1);
           const avgBright = brightSum / (count || 1);
-          
-          if (avgEdge > maxEdgeDensity) {
-            maxEdgeDensity = avgEdge;
-            maxEdgeCell = { r, c };
-          }
-          
           if (avgBright > maxBrightness) {
             maxBrightness = avgBright;
             maxBrightCell = { r, c };
@@ -1044,21 +995,14 @@
         }
       }
       
-      // Convert grid cells to normalized coordinates
-      const detailX = ((maxEdgeCell.c + 0.5) * colW) / w * 100;
-      const detailY = ((maxEdgeCell.r + 0.5) * rowH) / h * 100;
-      
+      // Convert grid cell to normalized coordinates
       const lightX = ((maxBrightCell.c + 0.5) * colW) / w * 100;
       const lightY = ((maxBrightCell.r + 0.5) * rowH) / h * 100;
-      
-      aiSpots.detail.x_pct = Math.round(detailX * 10) / 10;
-      aiSpots.detail.y_pct = Math.round(detailY * 10) / 10;
       
       aiSpots.light.x_pct = Math.round(lightX * 10) / 10;
       aiSpots.light.y_pct = Math.round(lightY * 10) / 10;
       
       // Update UI descriptions
-      aiDetailDesc.innerHTML = `位置: <strong>(${aiSpots.detail.x_pct}%, ${aiSpots.detail.y_pct}%)</strong><br>画像内で最もコントラストやディテールが集中している中心部分です。この点を構図の重要な分割線や交点に載せると良いでしょう。`;
       aiLightDesc.innerHTML = `位置: <strong>(${aiSpots.light.x_pct}%, ${aiSpots.light.y_pct}%)</strong><br>最も明るい光源や反射面の位置です。陰影（キアロスクーロ）のバランスや、見る人の視線が最初に移るポイントとして構図に取り入れてみましょう。`;
     }
 
@@ -1410,27 +1354,6 @@
 
     function drawAISpots() {
       ctx.save();
-      
-      // Detail Focus
-      const detailX = (aiSpots.detail.x_pct / 100) * canvas.width;
-      const detailY = (aiSpots.detail.y_pct / 100) * canvas.height;
-      
-      ctx.strokeStyle = 'rgba(139, 92, 246, 0.8)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(detailX, detailY, 14, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      ctx.fillStyle = 'rgba(139, 92, 246, 0.45)';
-      ctx.beginPath();
-      ctx.arc(detailX, detailY, 4, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px Inter';
-      ctx.shadowColor = 'black';
-      ctx.shadowBlur = 4;
-      ctx.fillText('🔍 ' + aiSpots.detail.label, detailX + 16, detailY + 3);
       
       // Light Focus
       const lightX = (aiSpots.light.x_pct / 100) * canvas.width;
