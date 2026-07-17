@@ -342,8 +342,14 @@ function drawGuide(cb) {
 
 function drawSpiralCurve(x, y, w, h, direction) {
   ctx.save();
-  // Apply translation and scaling to flip/rotate the spiral
+
+  let drawW = w;
+  let drawH = h;
+
+  // Move origin to the center of the crop box
   ctx.translate(x + w / 2, y + h / 2);
+
+  // Apply flip based on selected quadrant direction
   if (direction === 1) {
     ctx.scale(-1, 1);
   } else if (direction === 2) {
@@ -351,24 +357,33 @@ function drawSpiralCurve(x, y, w, h, direction) {
   } else if (direction === 3) {
     ctx.scale(1, -1);
   }
-  ctx.translate(-w / 2, -h / 2);
+
+  // Rotate 90 degrees if height is larger than width (Portrait orientation)
+  if (w < h) {
+    ctx.rotate(Math.PI / 2);
+    ctx.translate(-h / 2, -w / 2);
+    drawW = h;
+    drawH = w;
+  } else {
+    ctx.translate(-w / 2, -h / 2);
+  }
 
   const phi = 1.61803398875;
   
-  // Determine the size and offset of the virtual golden rectangle that fits inside [0, 0, w, h]
+  // Determine the size and offset of the virtual golden rectangle that fits inside [0, 0, drawW, drawH]
   let w_gold, h_gold;
   let x_off = 0, y_off = 0;
   
-  if (w / h >= phi) {
+  if (drawW / drawH >= phi) {
     // Wide crop box: fit by height
-    h_gold = h;
-    w_gold = h * phi;
-    x_off = (w - w_gold) / 2;
+    h_gold = drawH;
+    w_gold = drawH * phi;
+    x_off = (drawW - w_gold) / 2;
   } else {
     // Narrow/Tall crop box: fit by width
-    w_gold = w;
-    h_gold = w / phi;
-    y_off = (h - h_gold) / 2;
+    w_gold = drawW;
+    h_gold = drawW / phi;
+    y_off = (drawH - h_gold) / 2;
   }
 
   // We partition the virtual golden rectangle [x_off, y_off, w_gold, h_gold]
@@ -426,7 +441,6 @@ function drawSpiralCurve(x, y, w, h, direction) {
   ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
   ctx.lineWidth = 1;
   
-  // Let's trace the boundary lines of the squares
   let gx1 = x_off, gx2 = x_off + w_gold, gy1 = y_off, gy2 = y_off + h_gold;
   for (let i = 0; i < 7; i++) {
     const mod = i % 4;
@@ -459,13 +473,12 @@ function drawSpiralCurve(x, y, w, h, direction) {
   ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
   ctx.lineWidth = 1.8;
 
-  // Start at the first point: bottom-left of the first square
+  // Start at the first point
   const first = squares[0];
   const startX = first.cx + first.r * Math.cos(first.startAngle);
   const startY = first.cy + first.r * Math.sin(first.startAngle);
   ctx.moveTo(startX, startY);
 
-  // Sequentially add each arc to create a single continuous path
   squares.forEach(sq => {
     ctx.arc(sq.cx, sq.cy, sq.r, sq.startAngle, sq.endAngle, false);
   });
