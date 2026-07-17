@@ -97,7 +97,7 @@ function handleImageFile(file) {
   originalFileName = file.name;
   
   // Hide upload zone
-  uploadZone.style.display = 'none';
+  uploadZone.classList.add('hidden');
   
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -111,15 +111,17 @@ img.onload = () => {
   
   // Update File details
   fileDetails.innerText = `画質: ${img.naturalWidth} x ${img.naturalHeight} | ${originalFileName}`;
-  fileInfoPanel.style.display = 'block';
+  fileInfoPanel.classList.remove('hidden');
 
   // Setup editor UI
   initCropBox();
-  resizeCanvas();
   
-  // Show editor
-  editorZone.style.display = 'flex';
-  controlPanel.style.display = 'flex';
+  // Show editor and controls
+  editorZone.classList.remove('hidden');
+  controlPanel.classList.remove('hidden');
+  
+  // Resize canvas based on visible area
+  resizeCanvas();
   
   draw();
 };
@@ -129,10 +131,10 @@ img.onload = () => {
 function resetUpload() {
   imgLoaded = false;
   fileInput.value = '';
-  editorZone.style.display = 'none';
-  controlPanel.style.display = 'none';
-  fileInfoPanel.style.display = 'none';
-  uploadZone.style.display = 'flex';
+  editorZone.classList.add('hidden');
+  controlPanel.classList.add('hidden');
+  fileInfoPanel.classList.add('hidden');
+  uploadZone.classList.remove('hidden');
 }
 
 btnReset.addEventListener('click', resetUpload);
@@ -841,9 +843,9 @@ document.querySelectorAll('.guide-item').forEach(item => {
     activeGuide = targetItem.dataset.guide;
     
     if (activeGuide === 'golden_spiral') {
-      spiralControls.style.display = 'flex';
+      spiralControls.classList.remove('hidden');
     } else {
-      spiralControls.style.display = 'none';
+      spiralControls.classList.add('hidden');
     }
     
     compositionInfo.innerHTML = guideDescriptions[activeGuide];
